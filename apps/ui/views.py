@@ -44,11 +44,11 @@ def dashboard(request):
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     active_batches = Batch.objects.exclude(current_stage_code='shipped').count()
-    active_orders = CustomerOrder.objects.exclude(current_stage_code__in=['shipped', 'closed', 'cancelled']).count()
+    active_orders = CustomerOrder.objects.exclude(current_stage_code__in=['shipped', 'cancelled']).count()
     events_today = ProcessEvent.objects.filter(received_at__gte=today_start).count()
     overdue_orders = CustomerOrder.objects.filter(
         planned_ship_date__lt=now,
-    ).exclude(current_stage_code__in=['shipped', 'closed', 'cancelled']).count()
+    ).exclude(current_stage_code__in=['shipped', 'cancelled']).count()
 
     # Batch stages distribution
     batch_stages_qs = (
@@ -125,7 +125,7 @@ def digital_twin(request):
     )
     orders = (
         CustomerOrder.objects
-        .exclude(current_stage_code__in=['closed', 'cancelled'])
+        .exclude(current_stage_code='cancelled')
         .order_by('-updated_at')[:50]
     )
     locations = (
@@ -218,11 +218,11 @@ def order_list(request):
 
     # Быстрые фильтры с дашборда
     if quick_filter == 'active':
-        qs = qs.exclude(current_stage_code__in=['shipped', 'closed', 'cancelled'])
+        qs = qs.exclude(current_stage_code__in=['shipped', 'cancelled'])
     elif quick_filter == 'overdue':
         qs = qs.filter(
             planned_ship_date__lt=timezone.now(),
-        ).exclude(current_stage_code__in=['shipped', 'closed', 'cancelled'])
+        ).exclude(current_stage_code__in=['shipped', 'cancelled'])
 
     if search:
         qs = qs.filter(order_number__icontains=search)
@@ -378,12 +378,12 @@ def analytics(request):
     order_durations = _calc_order_durations()
 
     total_shipped_orders = CustomerOrder.objects.filter(
-        current_stage_code__in=['shipped', 'closed']
+        current_stage_code='shipped'
     ).count()
 
     overdue_orders = CustomerOrder.objects.filter(
         planned_ship_date__lt=timezone.now(),
-    ).exclude(current_stage_code__in=['shipped', 'closed', 'cancelled']).count()
+    ).exclude(current_stage_code__in=['shipped', 'cancelled']).count()
 
     # Simple avg times
     avg_receive_to_place = _calc_avg_transition('batch.received', 'batch.placed')

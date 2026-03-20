@@ -453,7 +453,7 @@ class Command(BaseCommand):
 
         overdue = CustomerOrder.objects.filter(
             planned_ship_date__lt=self.now
-        ).exclude(current_stage_code__in=['shipped','closed','cancelled']).count()
+        ).exclude(current_stage_code__in=['shipped','cancelled']).count()
         self.stdout.write(f'\n   ⚠️  Просроченных заказов: {overdue}')
         self.stdout.write(self.style.SUCCESS(
             f'\n✅ Всего событий: {self.cnt}'

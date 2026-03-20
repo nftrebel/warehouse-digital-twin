@@ -24,11 +24,9 @@ class CustomerOrder(models.Model):
 
     STAGE_CHOICES = [
         ('created', 'Создан'),
-        ('queued', 'В очереди'),
         ('picking', 'Комплектация'),
         ('assembled', 'Скомплектован'),
         ('shipped', 'Отгружен'),
-        ('closed', 'Закрыт'),
         ('cancelled', 'Отменён'),
     ]
 
