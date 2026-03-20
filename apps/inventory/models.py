@@ -34,9 +34,7 @@ class Batch(models.Model):
         ('placed', 'Размещена'),
         ('stored', 'На хранении'),
         ('reserved', 'Зарезервирована'),
-        ('picked', 'Подобрана'),
         ('shipped', 'Отгружена'),
-        ('closed', 'Закрыта'),
     ]
 
     batch_id = models.BigAutoField(

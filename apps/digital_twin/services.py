@@ -363,8 +363,8 @@ class DigitalTwinService:
         # Если указана партия — обновляем её
         if batch_code:
             batch = self._get_batch(batch_code)
+            batch.quantity_reserved -= qty_picked
             batch.quantity_picked += qty_picked
-            batch.current_stage_code = 'picked'
             batch.last_event = event
             batch.save()
             event.batch = batch

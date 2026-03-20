@@ -384,11 +384,10 @@ class EventProcessor:
             # Обновляем партию: подобранное переходит из резерва
             batch.quantity_reserved -= qty_picked
             batch.quantity_picked += qty_picked
-            batch.current_stage_code = 'picked'
             batch.last_event = event
             batch.save(update_fields=[
                 'quantity_reserved', 'quantity_picked',
-                'current_stage_code', 'last_event', 'updated_at',
+                'last_event', 'updated_at',
             ])
             event.batch = batch
 

@@ -29,7 +29,7 @@ def dashboard(request):
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    active_batches = Batch.objects.exclude(current_stage_code__in=['shipped', 'closed']).count()
+    active_batches = Batch.objects.exclude(current_stage_code='shipped').count()
     active_orders = CustomerOrder.objects.exclude(current_stage_code__in=['shipped', 'closed', 'cancelled']).count()
     events_today = ProcessEvent.objects.filter(received_at__gte=today_start).count()
     overdue_orders = CustomerOrder.objects.filter(
@@ -90,9 +90,7 @@ def digital_twin(request):
         ('placed', 'Размещена'),
         ('stored', 'Хранение'),
         ('reserved', 'Резерв'),
-        ('picked', 'Подобрана'),
         ('shipped', 'Отгружена'),
-        ('closed', 'Закрыта'),
     ]
 
     batch_counts = dict(
@@ -108,7 +106,7 @@ def digital_twin(request):
     batches = (
         Batch.objects
         .select_related('product', 'current_location')
-        .exclude(current_stage_code='closed')
+        .exclude(current_stage_code='shipped')
         .order_by('-updated_at')[:50]
     )
     orders = (
@@ -145,7 +143,7 @@ def batch_list(request):
 
     # Быстрый фильтр с дашборда
     if quick_filter == 'active':
-        qs = qs.exclude(current_stage_code__in=['shipped', 'closed'])
+        qs = qs.exclude(current_stage_code='shipped')
 
     if search:
         qs = qs.filter(
@@ -422,8 +420,7 @@ def _calc_stage_durations():
         ('received', 'placed'),
         ('placed', 'stored'),
         ('stored', 'reserved'),
-        ('reserved', 'picked'),
-        ('picked', 'shipped'),
+        ('reserved', 'shipped'),
     ]
     results = []
     for from_stage, to_stage in transitions:
