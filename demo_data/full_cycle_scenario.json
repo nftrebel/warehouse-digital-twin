@@ -1,0 +1,182 @@
+{
+  "description": "Полный демонстрационный сценарий: приёмка партии → размещение → создание заказа → резервирование → комплектация → отгрузка",
+  "events": [
+    {
+      "event_id": "evt-001-batch-received",
+      "event_type": "batch.received",
+      "occurred_at": "2026-03-20T08:00:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "batch",
+      "object_id": "BATCH-00001",
+      "payload": {
+        "batch_code": "BATCH-00001",
+        "product_sku": "SKU-1001",
+        "qty": 50,
+        "supplier_doc": "ПН-2026-0001",
+        "receiving_gate": "RECEIVING-01"
+      }
+    },
+    {
+      "event_id": "evt-002-batch-received",
+      "event_type": "batch.received",
+      "occurred_at": "2026-03-20T08:15:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "batch",
+      "object_id": "BATCH-00002",
+      "payload": {
+        "batch_code": "BATCH-00002",
+        "product_sku": "SKU-1003",
+        "qty": 200,
+        "supplier_doc": "ПН-2026-0002",
+        "receiving_gate": "RECEIVING-01"
+      }
+    },
+    {
+      "event_id": "evt-003-batch-placed",
+      "event_type": "batch.placed",
+      "occurred_at": "2026-03-20T08:30:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "batch",
+      "object_id": "BATCH-00001",
+      "payload": {
+        "batch_code": "BATCH-00001",
+        "qty": 50,
+        "to_location": "A-01-01",
+        "zone_code": "STORAGE-A"
+      }
+    },
+    {
+      "event_id": "evt-004-batch-placed",
+      "event_type": "batch.placed",
+      "occurred_at": "2026-03-20T08:45:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "batch",
+      "object_id": "BATCH-00002",
+      "payload": {
+        "batch_code": "BATCH-00002",
+        "qty": 200,
+        "to_location": "A-01-02",
+        "zone_code": "STORAGE-A"
+      }
+    },
+    {
+      "event_id": "evt-005-order-created",
+      "event_type": "order.created",
+      "occurred_at": "2026-03-20T09:00:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "order",
+      "object_id": "ORD-2026-0001",
+      "payload": {
+        "order_number": "ORD-2026-0001",
+        "priority": "high",
+        "planned_ship_at": "2026-03-21T16:00:00Z",
+        "items": [
+          {"product_sku": "SKU-1001", "qty": 10},
+          {"product_sku": "SKU-1003", "qty": 30}
+        ]
+      }
+    },
+    {
+      "event_id": "evt-006-batch-reserved",
+      "event_type": "batch.reserved",
+      "occurred_at": "2026-03-20T09:15:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "batch",
+      "object_id": "BATCH-00001",
+      "payload": {
+        "batch_code": "BATCH-00001",
+        "order_number": "ORD-2026-0001",
+        "qty_reserved": 10
+      }
+    },
+    {
+      "event_id": "evt-007-batch-reserved",
+      "event_type": "batch.reserved",
+      "occurred_at": "2026-03-20T09:16:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "batch",
+      "object_id": "BATCH-00002",
+      "payload": {
+        "batch_code": "BATCH-00002",
+        "order_number": "ORD-2026-0001",
+        "qty_reserved": 30
+      }
+    },
+    {
+      "event_id": "evt-008-picking-started",
+      "event_type": "order.picking_started",
+      "occurred_at": "2026-03-20T10:00:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "order",
+      "object_id": "ORD-2026-0001",
+      "payload": {
+        "order_number": "ORD-2026-0001"
+      }
+    },
+    {
+      "event_id": "evt-009-item-picked-1",
+      "event_type": "order.item_picked",
+      "occurred_at": "2026-03-20T10:15:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "order",
+      "object_id": "ORD-2026-0001",
+      "payload": {
+        "order_number": "ORD-2026-0001",
+        "product_sku": "SKU-1001",
+        "qty_picked": 10,
+        "batch_code": "BATCH-00001"
+      }
+    },
+    {
+      "event_id": "evt-010-item-picked-2",
+      "event_type": "order.item_picked",
+      "occurred_at": "2026-03-20T10:30:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "order",
+      "object_id": "ORD-2026-0001",
+      "payload": {
+        "order_number": "ORD-2026-0001",
+        "product_sku": "SKU-1003",
+        "qty_picked": 30,
+        "batch_code": "BATCH-00002"
+      }
+    },
+    {
+      "event_id": "evt-011-order-assembled",
+      "event_type": "order.assembled",
+      "occurred_at": "2026-03-20T10:45:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "order",
+      "object_id": "ORD-2026-0001",
+      "payload": {
+        "order_number": "ORD-2026-0001",
+        "assembled_at": "2026-03-20T10:45:00Z"
+      }
+    },
+    {
+      "event_id": "evt-012-shipment-dispatched",
+      "event_type": "shipment.dispatched",
+      "occurred_at": "2026-03-20T14:00:00Z",
+      "source_system": "simulator",
+      "warehouse_code": "WH-01",
+      "object_type": "order",
+      "object_id": "ORD-2026-0001",
+      "payload": {
+        "order_number": "ORD-2026-0001",
+        "shipment_number": "SHP-2026-0001",
+        "dispatched_at": "2026-03-20T14:00:00Z"
+      }
+    }
+  ]
+}
