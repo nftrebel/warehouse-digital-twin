@@ -417,15 +417,14 @@ class DigitalTwinService:
 
     def _handle_shipment_dispatched(self, event: ProcessEvent, data: dict) -> str:
         """
-        shipment.dispatched — Заказ/партия отгружены.
-        Закрывает заказ и списывает партию.
+        shipment.dispatched — Заказ отгружен.
+        Партии: если товар остался → stored, если нет → shipped.
         """
         payload = data.get('payload', {})
         order_number = payload.get('order_number', data['object_id'])
 
         order = self._get_order(order_number)
 
-        # Проверяем, что заказ скомплектован
         if order.current_stage_code not in ('assembled', 'picking', 'shipped'):
             raise EventProcessingError(
                 f'Заказ {order_number} не готов к отгрузке '
@@ -436,20 +435,24 @@ class DigitalTwinService:
         order.last_event = event
         order.save()
 
-        # Обновляем связанные партии
         reservations = BatchReservation.objects.filter(
             order_line__order=order,
         ).select_related('batch')
 
         for reservation in reservations:
             batch = reservation.batch
-            shipped_qty = reservation.reserved_qty
-            batch.quantity_shipped += shipped_qty
-            batch.quantity_reserved = max(
-                Decimal('0'), batch.quantity_reserved - shipped_qty
-            )
-            batch.current_stage_code = 'shipped'
+            batch.quantity_picked -= reservation.picked_qty
+            batch.quantity_shipped += reservation.picked_qty
             batch.last_event = event
+
+            # Определяем новый статус партии
+            if batch.quantity_available <= 0 and batch.quantity_reserved <= 0 and batch.quantity_picked <= 0:
+                batch.current_stage_code = 'shipped'
+            elif batch.quantity_reserved > 0:
+                batch.current_stage_code = 'reserved'
+            else:
+                batch.current_stage_code = 'stored'
+
             batch.save()
 
             reservation.reservation_status = 'shipped'

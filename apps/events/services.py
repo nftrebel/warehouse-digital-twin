@@ -429,7 +429,11 @@ class EventProcessor:
         """
         Отгрузка выполнена.
 
-        Закрывает заказ (→ shipped) и обновляет связанные партии.
+        Закрывает заказ (→ shipped) и обновляет связанные партии:
+        - Подобранное количество переходит в отгруженное
+        - Если в партии ещё остался товар → партия возвращается в «stored»
+        - Если товар закончился (available = 0) → партия получает статус «shipped»
+        - Если у партии есть другие активные резервы → остаётся «reserved»
         """
         payload = data['payload']
         order_number = payload.get('order_number', data['object_id'])
@@ -452,11 +456,22 @@ class EventProcessor:
             res.save(update_fields=['reservation_status'])
 
             batch = res.batch
-            # Отгруженное переходит из подобранного
+            # Подобранное переходит в отгруженное
             batch.quantity_picked -= res.picked_qty
             batch.quantity_shipped += res.picked_qty
-            batch.current_stage_code = 'shipped'
             batch.last_event = event
+
+            # Определяем новый статус партии
+            if batch.quantity_available <= 0 and batch.quantity_reserved <= 0 and batch.quantity_picked <= 0:
+                # Товар полностью закончился → отгружена
+                batch.current_stage_code = 'shipped'
+            elif batch.quantity_reserved > 0:
+                # Есть другие активные резервы → остаётся зарезервированной
+                batch.current_stage_code = 'reserved'
+            else:
+                # Товар ещё есть, резервов нет → возвращается на хранение
+                batch.current_stage_code = 'stored'
+
             batch.save(update_fields=[
                 'quantity_picked', 'quantity_shipped',
                 'current_stage_code', 'last_event', 'updated_at',
