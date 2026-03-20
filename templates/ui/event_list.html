@@ -26,8 +26,12 @@
                 <td><code style="font-size:.8rem">{{ e.event_type_code }}</code></td>
                 <td style="font-size:.82rem">{{ e.source_system }}</td>
                 <td>
-                    {% if e.batch %}<a href="{% url 'ui:batch-detail' e.batch.batch_id %}" class="row-link"><i class="bi bi-archive"></i> {{ e.batch.batch_number }}</a>
-                    {% elif e.order %}<a href="{% url 'ui:order-detail' e.order.order_id %}" class="row-link"><i class="bi bi-cart3"></i> {{ e.order.order_number }}</a>
+                    {% if e.batch %}
+                        {% if user.role_code == 'analyst' %}<a href="{% url 'ui:batch-detail' e.batch.batch_id %}" class="row-link"><i class="bi bi-archive"></i> {{ e.batch.batch_number }}</a>
+                        {% else %}<i class="bi bi-archive"></i> {{ e.batch.batch_number }}{% endif %}
+                    {% elif e.order %}
+                        {% if user.role_code == 'analyst' %}<a href="{% url 'ui:order-detail' e.order.order_id %}" class="row-link"><i class="bi bi-cart3"></i> {{ e.order.order_number }}</a>
+                        {% else %}<i class="bi bi-cart3"></i> {{ e.order.order_number }}{% endif %}
                     {% else %}—{% endif %}
                 </td>
                 <td>{% if e.new_stage_code %}<span class="badge badge-stage badge-{{ e.new_stage_code }}">{{ e.new_stage_code }}</span>{% else %}—{% endif %}</td>

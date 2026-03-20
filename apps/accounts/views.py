@@ -15,10 +15,17 @@ from .models import User
 from .forms import UserCreateForm, UserEditForm
 
 
+def _home_url(user):
+    """Возвращает домашнюю страницу в зависимости от роли."""
+    if user.role_code == 'admin':
+        return 'ui:event-list'
+    return 'ui:dashboard'
+
+
 def login_view(request):
     """Страница входа в систему."""
     if request.user.is_authenticated:
-        return redirect('ui:dashboard')
+        return redirect(_home_url(request.user))
 
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -28,8 +35,10 @@ def login_view(request):
         if user is not None:
             if user.is_active:
                 login(request, user)
-                next_url = request.GET.get('next', 'ui:dashboard')
-                return redirect(next_url)
+                next_url = request.GET.get('next')
+                if next_url:
+                    return redirect(next_url)
+                return redirect(_home_url(user))
             else:
                 return render(request, 'accounts/login.html', {
                     'form': {'errors': True},
@@ -54,7 +63,7 @@ def admin_required(view_func):
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect('accounts:login')
-        if not (request.user.role_code == 'admin' or request.user.is_superuser):
+        if request.user.role_code != 'admin':
             messages.error(request, 'Доступ запрещён. Требуются права администратора.')
             return redirect('ui:dashboard')
         return view_func(request, *args, **kwargs)

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Аналитика и KPI{% endblock %}
-{% block page_title %}<i class="bi bi-graph-up me-2"></i>Аналитика и KPI{% endblock %}
+{% block title %}KPI{% endblock %}
+{% block page_title %}<i class="bi bi-graph-up me-2"></i>KPI{% endblock %}
 {% block content %}
 <!-- KPI cards -->
 <div class="row g-3 mb-4">
@@ -26,11 +26,13 @@
         </div>
     </div>
     <div class="col-lg-3 col-md-6">
-        <div class="kpi-card">
-            <div class="kpi-icon mb-2" style="background:#fce8e6;color:#c5221f"><i class="bi bi-exclamation-diamond"></i></div>
-            <div class="kpi-value">{{ rejected_events }}</div>
-            <div class="kpi-label">Отклонённых событий</div>
-        </div>
+        <a href="{% url 'ui:order-list' %}?filter=overdue" style="text-decoration:none">
+            <div class="kpi-card" style="cursor:pointer">
+                <div class="kpi-icon mb-2" style="background:#fce8e6;color:#c5221f"><i class="bi bi-exclamation-triangle"></i></div>
+                <div class="kpi-value">{{ overdue_orders }}</div>
+                <div class="kpi-label">Просроченных заказов</div>
+            </div>
+        </a>
     </div>
 </div>
 
@@ -77,23 +79,49 @@
 </div>
 
 <!-- Stage durations -->
-{% if stage_durations %}
-<div class="section-card">
-    <h5><i class="bi bi-stopwatch me-2"></i>Средняя длительность этапов партий</h5>
-    <div class="data-table">
-        <table class="table">
-            <thead><tr><th>Переход</th><th>Среднее время</th><th>Количество</th></tr></thead>
-            <tbody>
-                {% for d in stage_durations %}
-                <tr>
-                    <td><span class="badge badge-stage badge-{{ d.from_stage }}">{{ d.from_stage }}</span> → <span class="badge badge-stage badge-{{ d.to_stage }}">{{ d.to_stage }}</span></td>
-                    <td class="fw-semibold">{{ d.avg_duration }}</td>
-                    <td>{{ d.count }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="row g-3 mt-1">
+    {% if batch_durations %}
+    <div class="col-lg-6">
+        <div class="section-card">
+            <h5><i class="bi bi-stopwatch me-2"></i>Длительность этапов партий</h5>
+            <div class="data-table">
+                <table class="table">
+                    <thead><tr><th>Переход</th><th>Среднее время</th><th>Кол-во</th></tr></thead>
+                    <tbody>
+                        {% for d in batch_durations %}
+                        <tr>
+                            <td><span class="badge badge-stage badge-{{ d.from_stage }}">{{ d.from_label }}</span> → <span class="badge badge-stage badge-{{ d.to_stage }}">{{ d.to_label }}</span></td>
+                            <td class="fw-semibold">{{ d.avg_duration }}</td>
+                            <td>{{ d.count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
+    {% endif %}
+
+    {% if order_durations %}
+    <div class="col-lg-6">
+        <div class="section-card">
+            <h5><i class="bi bi-stopwatch me-2"></i>Длительность этапов заказов</h5>
+            <div class="data-table">
+                <table class="table">
+                    <thead><tr><th>Переход</th><th>Среднее время</th><th>Кол-во</th></tr></thead>
+                    <tbody>
+                        {% for d in order_durations %}
+                        <tr>
+                            <td><span class="badge badge-stage badge-{{ d.from_stage }}">{{ d.from_label }}</span> → <span class="badge badge-stage badge-{{ d.to_stage }}">{{ d.to_label }}</span></td>
+                            <td class="fw-semibold">{{ d.avg_duration }}</td>
+                            <td>{{ d.count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
-{% endif %}
 {% endblock %}

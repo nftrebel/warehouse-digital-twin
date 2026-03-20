@@ -35,13 +35,21 @@
             {% if event.batch %}
             <div class="mb-2">
                 <div class="detail-label">Партия</div>
+                {% if user.role_code == 'analyst' %}
                 <a href="{% url 'ui:batch-detail' event.batch.batch_id %}" class="row-link fw-semibold"><i class="bi bi-archive me-1"></i>{{ event.batch.batch_number }}</a>
+                {% else %}
+                <div class="detail-value"><i class="bi bi-archive me-1"></i>{{ event.batch.batch_number }}</div>
+                {% endif %}
             </div>
             {% endif %}
             {% if event.order %}
             <div class="mb-2">
                 <div class="detail-label">Заказ</div>
+                {% if user.role_code == 'analyst' %}
                 <a href="{% url 'ui:order-detail' event.order.order_id %}" class="row-link fw-semibold"><i class="bi bi-cart3 me-1"></i>{{ event.order.order_number }}</a>
+                {% else %}
+                <div class="detail-value"><i class="bi bi-cart3 me-1"></i>{{ event.order.order_number }}</div>
+                {% endif %}
             </div>
             {% endif %}
             {% if event.location %}

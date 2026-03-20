@@ -8,9 +8,11 @@ import json
 import uuid
 from datetime import timedelta
 from decimal import Decimal
+from functools import wraps
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum, F
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
 from django.utils import timezone
 
 from apps.references.models import Product, StorageLocation
@@ -20,11 +22,23 @@ from apps.events.models import ProcessEvent
 from apps.events.services import EventProcessor
 
 
+def analyst_required(view_func):
+    """Декоратор: доступ только для аналитиков."""
+    @wraps(view_func)
+    @login_required
+    def wrapper(request, *args, **kwargs):
+        if request.user.role_code == 'admin':
+            messages.error(request, 'Этот раздел доступен только для аналитиков.')
+            return redirect('ui:event-list')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
 # ---------------------------------------------------------------------------
 # Dashboard
 # ---------------------------------------------------------------------------
 
-@login_required
+@analyst_required
 def dashboard(request):
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -82,7 +96,7 @@ def dashboard(request):
 # Digital Twin
 # ---------------------------------------------------------------------------
 
-@login_required
+@analyst_required
 def digital_twin(request):
     BATCH_STAGES = [
         ('expected', 'Ожидает'),
@@ -133,7 +147,7 @@ def digital_twin(request):
 # Batches
 # ---------------------------------------------------------------------------
 
-@login_required
+@analyst_required
 def batch_list(request):
     qs = Batch.objects.select_related('product', 'current_location')
 
@@ -164,7 +178,7 @@ def batch_list(request):
     })
 
 
-@login_required
+@analyst_required
 def batch_detail(request, batch_id):
     batch = get_object_or_404(
         Batch.objects.select_related('product', 'current_location'),
@@ -193,7 +207,7 @@ def batch_detail(request, batch_id):
 # Orders
 # ---------------------------------------------------------------------------
 
-@login_required
+@analyst_required
 def order_list(request):
     qs = CustomerOrder.objects.all()
 
@@ -229,7 +243,7 @@ def order_list(request):
     })
 
 
-@login_required
+@analyst_required
 def order_detail(request, order_id):
     order = get_object_or_404(CustomerOrder, order_id=order_id)
 
@@ -318,7 +332,7 @@ def event_detail(request, event_id):
 # Locations
 # ---------------------------------------------------------------------------
 
-@login_required
+@analyst_required
 def location_list(request):
     locations = (
         StorageLocation.objects
@@ -335,7 +349,7 @@ def location_list(request):
 # Analytics
 # ---------------------------------------------------------------------------
 
-@login_required
+@analyst_required
 def analytics(request):
     total_events = ProcessEvent.objects.count() or 1
 
@@ -359,13 +373,17 @@ def analytics(request):
     for item in events_by_source:
         item['percent'] = round(item['count'] / total_events * 100)
 
-    # Stage durations (simple approach: difference between consecutive events for same batch)
-    stage_durations = _calc_stage_durations()
+    # Stage durations
+    batch_durations = _calc_batch_durations()
+    order_durations = _calc_order_durations()
 
     total_shipped_orders = CustomerOrder.objects.filter(
         current_stage_code__in=['shipped', 'closed']
     ).count()
-    rejected_events = ProcessEvent.objects.filter(processing_status='rejected').count()
+
+    overdue_orders = CustomerOrder.objects.filter(
+        planned_ship_date__lt=timezone.now(),
+    ).exclude(current_stage_code__in=['shipped', 'closed', 'cancelled']).count()
 
     # Simple avg times
     avg_receive_to_place = _calc_avg_transition('batch.received', 'batch.placed')
@@ -375,9 +393,10 @@ def analytics(request):
         'active_page': 'analytics',
         'events_by_type': events_by_type,
         'events_by_source': events_by_source,
-        'stage_durations': stage_durations,
+        'batch_durations': batch_durations,
+        'order_durations': order_durations,
         'total_shipped_orders': total_shipped_orders,
-        'rejected_events': rejected_events,
+        'overdue_orders': overdue_orders,
         'avg_receive_to_place': avg_receive_to_place,
         'avg_pick_to_ship': avg_pick_to_ship,
     })
@@ -414,31 +433,56 @@ def _calc_avg_transition(from_type, to_type):
     return _format_duration(avg)
 
 
-def _calc_stage_durations():
-    """Calculate average durations between stage transitions."""
+def _calc_batch_durations():
+    """
+    Длительности переходов партий.
+    Использует event_type_code для надёжного сопоставления.
+    """
     transitions = [
-        ('received', 'placed'),
-        ('placed', 'stored'),
-        ('stored', 'reserved'),
-        ('reserved', 'shipped'),
+        ('batch.received', 'batch.placed', 'Приёмка', 'Размещение', 'received', 'stored'),
+        ('batch.received', 'batch.reserved', 'Приёмка', 'Резервирование', 'received', 'reserved'),
+        ('batch.placed', 'batch.reserved', 'Размещение', 'Резервирование', 'stored', 'reserved'),
+        ('batch.placed', 'batch.moved', 'Размещение', 'Перемещение', 'stored', 'stored'),
     ]
+    return _calc_durations_by_event_type(transitions, key_field='batch_id')
+
+
+def _calc_order_durations():
+    """
+    Длительности переходов заказов.
+    """
+    transitions = [
+        ('order.created', 'order.picking_started', 'Создан', 'Комплектация', 'created', 'picking'),
+        ('order.picking_started', 'order.assembled', 'Комплектация', 'Собран', 'picking', 'assembled'),
+        ('order.assembled', 'shipment.dispatched', 'Собран', 'Отгрузка', 'assembled', 'shipped'),
+        ('order.created', 'shipment.dispatched', 'Создан', 'Отгрузка (полный цикл)', 'created', 'shipped'),
+    ]
+    return _calc_durations_by_event_type(transitions, key_field='order_id')
+
+
+def _calc_durations_by_event_type(transitions, key_field):
+    """
+    Универсальный расчёт длительностей между парами event_type_code.
+    """
     results = []
-    for from_stage, to_stage in transitions:
+    for from_type, to_type, from_label, to_label, from_stage, to_stage in transitions:
         from_events = dict(
             ProcessEvent.objects
-            .filter(new_stage_code=from_stage, processing_status='applied')
-            .values_list('batch_id', 'event_time')
+            .filter(event_type_code=from_type, processing_status='applied')
+            .exclude(**{key_field: None})
+            .values_list(key_field, 'event_time')
         )
         to_events = dict(
             ProcessEvent.objects
-            .filter(new_stage_code=to_stage, processing_status='applied')
-            .values_list('batch_id', 'event_time')
+            .filter(event_type_code=to_type, processing_status='applied')
+            .exclude(**{key_field: None})
+            .values_list(key_field, 'event_time')
         )
 
         durations = []
-        for batch_id, from_time in from_events.items():
-            if batch_id and batch_id in to_events:
-                delta = (to_events[batch_id] - from_time).total_seconds()
+        for obj_id, from_time in from_events.items():
+            if obj_id in to_events:
+                delta = (to_events[obj_id] - from_time).total_seconds()
                 if delta > 0:
                     durations.append(delta)
 
@@ -447,6 +491,8 @@ def _calc_stage_durations():
             results.append({
                 'from_stage': from_stage,
                 'to_stage': to_stage,
+                'from_label': from_label,
+                'to_label': to_label,
                 'avg_duration': _format_duration(avg),
                 'count': len(durations),
             })
@@ -473,7 +519,7 @@ def _format_duration(seconds):
 # Simulator
 # ---------------------------------------------------------------------------
 
-@login_required
+@analyst_required
 def simulator(request):
     result = None
     result_json = ''

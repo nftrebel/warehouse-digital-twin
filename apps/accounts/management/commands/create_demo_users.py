@@ -15,11 +15,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # Администратор
         if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser(
+            User.objects.create_user(
                 username='admin',
                 password='admin123',
                 full_name='Администратор системы',
                 role_code='admin',
+                is_staff=True,
             )
             self.stdout.write(self.style.SUCCESS(
                 '✅ Создан администратор: admin / admin123'

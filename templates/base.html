@@ -99,6 +99,7 @@
             <h5><i class="bi bi-box-seam me-2"></i>Цифровой двойник</h5>
             <small>Складская логистика</small>
         </div>
+        {% if user.is_authenticated and user.role_code == 'analyst' %}
         <div class="nav-section">Мониторинг</div>
         <a href="{% url 'ui:dashboard' %}" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
             <i class="bi bi-speedometer2"></i> Дашборд</a>
@@ -111,16 +112,19 @@
             <i class="bi bi-cart3"></i> Заказы</a>
         <a href="{% url 'ui:location-list' %}" class="nav-link {% if active_page == 'locations' %}active{% endif %}">
             <i class="bi bi-geo-alt"></i> Склад и ячейки</a>
+        {% endif %}
         <div class="nav-section">Журнал</div>
         <a href="{% url 'ui:event-list' %}" class="nav-link {% if active_page == 'events' %}active{% endif %}">
             <i class="bi bi-journal-text"></i> События</a>
+        {% if user.is_authenticated and user.role_code == 'analyst' %}
         <div class="nav-section">Аналитика</div>
         <a href="{% url 'ui:analytics' %}" class="nav-link {% if active_page == 'analytics' %}active{% endif %}">
-            <i class="bi bi-graph-up"></i> KPI и аналитика</a>
+            <i class="bi bi-graph-up"></i> Показатели KPI</a>
         <div class="nav-section">Инструменты</div>
         <a href="{% url 'ui:simulator' %}" class="nav-link {% if active_page == 'simulator' %}active{% endif %}">
             <i class="bi bi-play-circle"></i> Симулятор</a>
-        {% if user.is_authenticated and user.role_code == 'admin' or user.is_superuser %}
+        {% endif %}
+        {% if user.is_authenticated and user.role_code == 'admin' %}
         <div class="nav-section">Администрирование</div>
         <a href="{% url 'accounts:user-list' %}" class="nav-link {% if active_page == 'users' %}active{% endif %}">
             <i class="bi bi-people"></i> Пользователи</a>
