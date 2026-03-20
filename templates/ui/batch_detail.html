@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load core_filters %}
 {% block title %}Партия {{ batch.batch_number }}{% endblock %}
 {% block page_title %}<i class="bi bi-archive me-2"></i>Партия {{ batch.batch_number }}{% endblock %}
 {% block content %}
@@ -14,10 +15,10 @@
             </div>
             <hr>
             <div class="row g-3">
-                <div class="col-sm-3"><div class="detail-label">Всего</div><div class="detail-value">{{ batch.quantity_total }}</div></div>
-                <div class="col-sm-3"><div class="detail-label">Доступно</div><div class="detail-value text-success">{{ batch.quantity_available }}</div></div>
-                <div class="col-sm-3"><div class="detail-label">Зарезервировано</div><div class="detail-value text-warning">{{ batch.quantity_reserved }}</div></div>
-                <div class="col-sm-3"><div class="detail-label">Отгружено</div><div class="detail-value">{{ batch.quantity_shipped }}</div></div>
+                <div class="col-sm-3"><div class="detail-label">Всего</div><div class="detail-value">{{ batch.quantity_total|qty }}</div></div>
+                <div class="col-sm-3"><div class="detail-label">Доступно</div><div class="detail-value text-success">{{ batch.quantity_available|qty }}</div></div>
+                <div class="col-sm-3"><div class="detail-label">Зарезервировано</div><div class="detail-value text-warning">{{ batch.quantity_reserved|qty }}</div></div>
+                <div class="col-sm-3"><div class="detail-label">Отгружено</div><div class="detail-value">{{ batch.quantity_shipped|qty }}</div></div>
             </div>
         </div>
         <!-- Events history -->
@@ -58,7 +59,7 @@
             <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid #f0f2f5">
                 <div>
                     <a href="{% url 'ui:order-detail' r.order_line.order.order_id %}" class="row-link fw-semibold">{{ r.order_line.order.order_number }}</a>
-                    <div style="font-size:.75rem;color:#7b8094">{{ r.order_line.product.sku_code }} × {{ r.reserved_qty }}</div>
+                    <div style="font-size:.75rem;color:#7b8094">{{ r.order_line.product.sku_code }} × {{ r.reserved_qty|qty }}</div>
                 </div>
                 <span class="badge badge-stage badge-{{ r.reservation_status }}">{{ r.reservation_status }}</span>
             </div>

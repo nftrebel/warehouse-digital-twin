@@ -35,6 +35,9 @@
                     <a href="{% url 'accounts:user-toggle' u.pk %}" class="btn btn-sm btn-outline-{{ u.is_active|yesno:'warning,success' }} py-0 px-2" title="{{ u.is_active|yesno:'Заблокировать,Разблокировать' }}">
                         <i class="bi bi-{{ u.is_active|yesno:'lock,unlock' }}"></i>
                     </a>
+                    <a href="{% url 'accounts:user-delete' u.pk %}" class="btn btn-sm btn-outline-danger py-0 px-2" title="Удалить">
+                        <i class="bi bi-trash"></i>
+                    </a>
                     {% endif %}
                 </td>
             </tr>

@@ -5,16 +5,19 @@ Views веб-интерфейса цифрового двойника.
 """
 
 import json
+import uuid
 from datetime import timedelta
+from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum, F
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 
-from apps.references.models import StorageLocation
+from apps.references.models import Product, StorageLocation
 from apps.inventory.models import Batch, BatchReservation
 from apps.orders.models import CustomerOrder, OrderLine
 from apps.events.models import ProcessEvent
+from apps.events.services import EventProcessor
 
 
 # ---------------------------------------------------------------------------
@@ -138,6 +141,11 @@ def batch_list(request):
 
     search = request.GET.get('search', '').strip()
     stage_filter = request.GET.get('stage', '').strip()
+    quick_filter = request.GET.get('filter', '').strip()
+
+    # Быстрый фильтр с дашборда
+    if quick_filter == 'active':
+        qs = qs.exclude(current_stage_code__in=['shipped', 'closed'])
 
     if search:
         qs = qs.filter(
@@ -153,6 +161,7 @@ def batch_list(request):
         'batches': qs.order_by('-updated_at'),
         'search': search,
         'stage_filter': stage_filter,
+        'quick_filter': quick_filter,
         'stage_choices': Batch.STAGE_CHOICES,
     })
 
@@ -193,6 +202,15 @@ def order_list(request):
     search = request.GET.get('search', '').strip()
     stage_filter = request.GET.get('stage', '').strip()
     priority_filter = request.GET.get('priority', '').strip()
+    quick_filter = request.GET.get('filter', '').strip()
+
+    # Быстрые фильтры с дашборда
+    if quick_filter == 'active':
+        qs = qs.exclude(current_stage_code__in=['shipped', 'closed', 'cancelled'])
+    elif quick_filter == 'overdue':
+        qs = qs.filter(
+            planned_ship_date__lt=timezone.now(),
+        ).exclude(current_stage_code__in=['shipped', 'closed', 'cancelled'])
 
     if search:
         qs = qs.filter(order_number__icontains=search)
@@ -207,6 +225,7 @@ def order_list(request):
         'search': search,
         'stage_filter': stage_filter,
         'priority_filter': priority_filter,
+        'quick_filter': quick_filter,
         'stage_choices': CustomerOrder.STAGE_CHOICES,
         'priority_choices': CustomerOrder.PRIORITY_CHOICES,
     })
@@ -451,3 +470,149 @@ def _format_duration(seconds):
         days = int(seconds // 86400)
         hours = int((seconds % 86400) // 3600)
         return f'{days} дн {hours} ч'
+
+
+# ---------------------------------------------------------------------------
+# Simulator
+# ---------------------------------------------------------------------------
+
+@login_required
+def simulator(request):
+    result = None
+    result_json = ''
+
+    if request.method == 'POST':
+        processor = EventProcessor()
+        now = timezone.now()
+
+        # Быстрые сценарии
+        scenario = request.POST.get('quick_scenario')
+        if scenario:
+            result = _run_quick_scenario(scenario, processor, now)
+        else:
+            # Ручная отправка события
+            event_type = request.POST.get('event_type', '')
+            source = request.POST.get('source', 'simulator')
+            payload_raw = request.POST.get('payload', '{}')
+
+            try:
+                payload = json.loads(payload_raw)
+            except json.JSONDecodeError:
+                result = {'status': 'error', 'message': 'Некорректный JSON в payload'}
+            else:
+                object_type = 'batch'
+                if event_type.startswith('order.') or event_type.startswith('shipment.'):
+                    object_type = 'order'
+                elif event_type.startswith('location.'):
+                    object_type = 'location'
+
+                object_id = (payload.get('batch_code')
+                             or payload.get('order_number')
+                             or payload.get('location_code')
+                             or 'unknown')
+
+                result = processor.process_event({
+                    'event_id': f'sim-{uuid.uuid4().hex[:12]}',
+                    'event_type': event_type,
+                    'occurred_at': now,
+                    'source_system': source,
+                    'warehouse_code': 'WH-01',
+                    'object_type': object_type,
+                    'object_id': object_id,
+                    'payload': payload,
+                })
+
+        result_json = json.dumps(result, ensure_ascii=False, indent=2, default=str)
+
+    stats = {
+        'batches': Batch.objects.count(),
+        'orders': CustomerOrder.objects.count(),
+        'events': ProcessEvent.objects.count(),
+        'locations': StorageLocation.objects.count(),
+    }
+
+    return render(request, 'ui/simulator.html', {
+        'active_page': 'simulator',
+        'result': result,
+        'result_json': result_json,
+        'stats': stats,
+    })
+
+
+def _run_quick_scenario(scenario, processor, now):
+    """Выполняет быстрый сценарий и возвращает результат."""
+
+    if scenario == 'new_batch':
+        num = Batch.objects.count() + 1
+        batch_code = f'BATCH-SIM-{num:03d}'
+        return processor.process_event({
+            'event_id': f'sim-{uuid.uuid4().hex[:12]}',
+            'event_type': 'batch.received',
+            'occurred_at': now,
+            'source_system': 'simulator',
+            'warehouse_code': 'WH-01',
+            'object_type': 'batch',
+            'object_id': batch_code,
+            'payload': {
+                'batch_code': batch_code,
+                'product_sku': 'SKU-1001',
+                'qty': 50,
+                'supplier_doc': f'SUP-SIM-{num:03d}',
+                'receiving_gate': 'RECV-01',
+            },
+        })
+
+    elif scenario == 'place_batch':
+        batch = Batch.objects.filter(current_stage_code='received').order_by('-updated_at').first()
+        if not batch:
+            return {'status': 'error', 'message': 'Нет партий в статусе received'}
+        return processor.process_event({
+            'event_id': f'sim-{uuid.uuid4().hex[:12]}',
+            'event_type': 'batch.placed',
+            'occurred_at': now,
+            'source_system': 'simulator',
+            'warehouse_code': 'WH-01',
+            'object_type': 'batch',
+            'object_id': batch.batch_number,
+            'payload': {
+                'batch_code': batch.batch_number,
+                'qty': float(batch.quantity_total),
+                'to_location': 'A-01-01',
+            },
+        })
+
+    elif scenario == 'new_order':
+        num = CustomerOrder.objects.count() + 1
+        order_code = f'ORD-SIM-{num:03d}'
+        return processor.process_event({
+            'event_id': f'sim-{uuid.uuid4().hex[:12]}',
+            'event_type': 'order.created',
+            'occurred_at': now,
+            'source_system': 'simulator',
+            'warehouse_code': 'WH-01',
+            'object_type': 'order',
+            'object_id': order_code,
+            'payload': {
+                'order_number': order_code,
+                'priority': 'normal',
+                'planned_ship_at': (now + timedelta(days=2)).isoformat(),
+                'items': [{'product_sku': 'SKU-1001', 'qty_requested': 10}],
+            },
+        })
+
+    elif scenario == 'block_location':
+        return processor.process_event({
+            'event_id': f'sim-{uuid.uuid4().hex[:12]}',
+            'event_type': 'location.blocked',
+            'occurred_at': now,
+            'source_system': 'simulator',
+            'warehouse_code': 'WH-01',
+            'object_type': 'location',
+            'object_id': 'PICK-02',
+            'payload': {
+                'location_code': 'PICK-02',
+                'reason': 'Техническое обслуживание (симуляция)',
+            },
+        })
+
+    return {'status': 'error', 'message': f'Неизвестный сценарий: {scenario}'}

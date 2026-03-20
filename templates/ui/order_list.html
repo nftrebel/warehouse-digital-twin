@@ -1,7 +1,19 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% block title %}Заказы{% endblock %}
 {% block page_title %}<i class="bi bi-cart3 me-2"></i>Заказы{% endblock %}
 {% block content %}
+{% if quick_filter == 'active' %}
+<div class="alert alert-info py-2 d-flex align-items-center justify-content-between" style="font-size:.85rem">
+    <span><i class="bi bi-funnel me-1"></i>Показаны только <strong>активные заказы</strong> (без отгруженных, закрытых и отменённых)</span>
+    <a href="{% url 'ui:order-list' %}" class="btn btn-sm btn-outline-info py-0">Показать все</a>
+</div>
+{% elif quick_filter == 'overdue' %}
+<div class="alert alert-danger py-2 d-flex align-items-center justify-content-between" style="font-size:.85rem">
+    <span><i class="bi bi-exclamation-triangle me-1"></i>Показаны только <strong>просроченные заказы</strong> (плановая дата отгрузки прошла)</span>
+    <a href="{% url 'ui:order-list' %}" class="btn btn-sm btn-outline-danger py-0">Показать все</a>
+</div>
+{% endif %}
 <div class="filter-bar">
     <form method="get" class="row g-2 align-items-end">
         <div class="col-auto"><input type="text" name="search" value="{{ search }}" class="form-control form-control-sm" placeholder="Номер заказа..."></div>
@@ -27,9 +39,9 @@
                 <td>
                     <div class="d-flex align-items-center">
                         <div style="width:60px;height:6px;background:#f0f2f5;border-radius:3px;margin-right:6px">
-                            <div style="width:{{ o.completion_percent }}%;height:100%;background:#34a853;border-radius:3px"></div>
+                            <div style="width:{{ o.completion_percent|unlocalize }}%;height:100%;background:#34a853;border-radius:3px"></div>
                         </div>
-                        <span style="font-size:.8rem">{{ o.completion_percent }}%</span>
+                        <span style="font-size:.8rem">{{ o.completion_percent|unlocalize }}%</span>
                     </div>
                 </td>
                 <td style="font-size:.82rem">{{ o.planned_ship_date|date:"d.m.Y H:i"|default:"—" }}</td>

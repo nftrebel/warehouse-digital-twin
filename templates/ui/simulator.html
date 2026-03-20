@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Симулятор событий{% endblock %}
+{% block page_title %}<i class="bi bi-play-circle me-2"></i>Симулятор событий{% endblock %}
+{% block content %}
+<p class="text-muted mb-3" style="font-size:.85rem">
+    Отправка тестовых событий в цифровой двойник для демонстрации работы системы
+</p>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="section-card">
+            <h5><i class="bi bi-send me-2"></i>Отправить событие</h5>
+            <form method="post" id="eventForm">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" style="font-size:.82rem;font-weight:500">Тип события</label>
+                        <select name="event_type" id="eventType" class="form-select form-select-sm" required>
+                            <option value="">Выберите тип...</option>
+                            <optgroup label="Партии">
+                                <option value="batch.received">batch.received — Приёмка</option>
+                                <option value="batch.placed">batch.placed — Размещение</option>
+                                <option value="batch.moved">batch.moved — Перемещение</option>
+                                <option value="batch.reserved">batch.reserved — Резервирование</option>
+                            </optgroup>
+                            <optgroup label="Заказы">
+                                <option value="order.created">order.created — Создание</option>
+                                <option value="order.picking_started">order.picking_started — Начало комплектации</option>
+                                <option value="order.item_picked">order.item_picked — Подбор позиции</option>
+                                <option value="order.assembled">order.assembled — Сборка завершена</option>
+                            </optgroup>
+                            <optgroup label="Отгрузка">
+                                <option value="shipment.dispatched">shipment.dispatched — Отгрузка</option>
+                            </optgroup>
+                            <optgroup label="Локации">
+                                <option value="location.blocked">location.blocked — Блокировка</option>
+                                <option value="location.unblocked">location.unblocked — Разблокировка</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" style="font-size:.82rem;font-weight:500">Источник</label>
+                        <select name="source" class="form-select form-select-sm">
+                            <option value="simulator">simulator</option>
+                            <option value="scanner">scanner</option>
+                            <option value="manual">manual</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="form-label" style="font-size:.82rem;font-weight:500">Payload (JSON)</label>
+                    <textarea name="payload" id="payloadField" class="form-control" rows="8"
+                        style="font-family:monospace;font-size:.82rem" required>{}</textarea>
+                    <small class="text-muted">Содержимое зависит от типа события. Выберите тип — шаблон заполнится автоматически.</small>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">
+                    <i class="bi bi-send me-1"></i>Отправить событие
+                </button>
+            </form>
+        </div>
+
+        {% if result %}
+        <div class="section-card">
+            <h5><i class="bi bi-terminal me-2"></i>Результат</h5>
+            <pre style="background:#{% if result.status == 'accepted' %}e6f4ea{% elif result.status == 'duplicate' %}fef7e0{% else %}fce8e6{% endif %};padding:1rem;border-radius:8px;font-size:.82rem;margin:0">{{ result_json }}</pre>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+        <div class="section-card">
+            <h5><i class="bi bi-lightbulb me-2"></i>Быстрые сценарии</h5>
+            <p style="font-size:.82rem;color:#7b8094">Отправка заранее подготовленных сценариев одной кнопкой</p>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="quick_scenario" value="new_batch">
+                <button type="submit" class="btn btn-sm btn-outline-primary w-100 mb-2 text-start">
+                    <i class="bi bi-archive me-2"></i>Принять новую партию SKU-1001
+                </button>
+            </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="quick_scenario" value="place_batch">
+                <button type="submit" class="btn btn-sm btn-outline-primary w-100 mb-2 text-start">
+                    <i class="bi bi-geo-alt me-2"></i>Разместить последнюю принятую партию
+                </button>
+            </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="quick_scenario" value="new_order">
+                <button type="submit" class="btn btn-sm btn-outline-primary w-100 mb-2 text-start">
+                    <i class="bi bi-cart-plus me-2"></i>Создать новый заказ
+                </button>
+            </form>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="quick_scenario" value="block_location">
+                <button type="submit" class="btn btn-sm btn-outline-warning w-100 mb-2 text-start">
+                    <i class="bi bi-lock me-2"></i>Заблокировать PICK-02
+                </button>
+            </form>
+        </div>
+
+        <div class="section-card">
+            <h5><i class="bi bi-info-circle me-2"></i>Текущая статистика</h5>
+            <div class="row g-2">
+                <div class="col-6"><div class="detail-label">Партий</div><div class="detail-value">{{ stats.batches }}</div></div>
+                <div class="col-6"><div class="detail-label">Заказов</div><div class="detail-value">{{ stats.orders }}</div></div>
+                <div class="col-6"><div class="detail-label">Событий</div><div class="detail-value">{{ stats.events }}</div></div>
+                <div class="col-6"><div class="detail-label">Локаций</div><div class="detail-value">{{ stats.locations }}</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+const templates = {
+    'batch.received': JSON.stringify({
+        batch_code: 'BATCH-NEW-001', product_sku: 'SKU-1001',
+        qty: 50, supplier_doc: 'SUP-NEW-001', receiving_gate: 'RECV-01'
+    }, null, 2),
+    'batch.placed': JSON.stringify({
+        batch_code: 'BATCH-NEW-001', qty: 50,
+        to_location: 'A-01-01', zone_code: 'STORAGE-A'
+    }, null, 2),
+    'batch.moved': JSON.stringify({
+        batch_code: 'BATCH-NEW-001', qty: 50,
+        from_location: 'A-01-01', to_location: 'B-01-01'
+    }, null, 2),
+    'batch.reserved': JSON.stringify({
+        batch_code: 'BATCH-NEW-001', order_number: 'ORD-NEW-001',
+        qty_reserved: 10
+    }, null, 2),
+    'order.created': JSON.stringify({
+        order_number: 'ORD-NEW-001', priority: 'normal',
+        planned_ship_at: new Date(Date.now() + 86400000*2).toISOString(),
+        items: [{product_sku: 'SKU-1001', qty_requested: 10}]
+    }, null, 2),
+    'order.picking_started': JSON.stringify({
+        order_number: 'ORD-NEW-001'
+    }, null, 2),
+    'order.item_picked': JSON.stringify({
+        order_number: 'ORD-NEW-001', product_sku: 'SKU-1001',
+        qty_picked: 10, batch_code: 'BATCH-NEW-001'
+    }, null, 2),
+    'order.assembled': JSON.stringify({
+        order_number: 'ORD-NEW-001',
+        assembled_at: new Date().toISOString()
+    }, null, 2),
+    'shipment.dispatched': JSON.stringify({
+        order_number: 'ORD-NEW-001', shipment_number: 'SHP-NEW-001',
+        dispatched_at: new Date().toISOString()
+    }, null, 2),
+    'location.blocked': JSON.stringify({
+        location_code: 'PICK-02', reason: 'Техническое обслуживание'
+    }, null, 2),
+    'location.unblocked': JSON.stringify({
+        location_code: 'PICK-02'
+    }, null, 2),
+};
+document.getElementById('eventType').addEventListener('change', function() {
+    const t = templates[this.value];
+    if (t) document.getElementById('payloadField').value = t;
+});
+</script>
+{% endblock %}
+{% endblock %}

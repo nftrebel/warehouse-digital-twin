@@ -134,3 +134,24 @@ def user_toggle_active(request, user_id):
     action = 'разблокирован' if user_obj.is_active else 'заблокирован'
     messages.success(request, f'Пользователь "{user_obj.username}" {action}')
     return redirect('accounts:user-list')
+
+
+@admin_required
+def user_delete(request, user_id):
+    """Удаление учётной записи пользователя."""
+    user_obj = get_object_or_404(User, pk=user_id)
+
+    if user_obj.pk == request.user.pk:
+        messages.error(request, 'Нельзя удалить свою учётную запись')
+        return redirect('accounts:user-list')
+
+    if request.method == 'POST':
+        username = user_obj.username
+        user_obj.delete()
+        messages.success(request, f'Пользователь "{username}" удалён')
+        return redirect('accounts:user-list')
+
+    return render(request, 'accounts/user_confirm_delete.html', {
+        'active_page': 'users',
+        'user_obj': user_obj,
+    })

@@ -29,4 +29,7 @@ urlpatterns = [
 
     # Analytics
     path('analytics/', views.analytics, name='analytics'),
+
+    # Simulator
+    path('simulator/', views.simulator, name='simulator'),
 ]

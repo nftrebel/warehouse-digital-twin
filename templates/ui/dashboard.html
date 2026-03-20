@@ -1,12 +1,45 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% block title %}Дашборд{% endblock %}
 {% block page_title %}<i class="bi bi-speedometer2 me-2"></i>Главный дашборд{% endblock %}
 {% block content %}
 <div class="row g-3 mb-4">
-    <div class="col-lg-3 col-md-6"><div class="kpi-card"><div class="kpi-icon mb-2" style="background:#e8f4fd;color:#1a73e8"><i class="bi bi-archive"></i></div><div class="kpi-value">{{ active_batches }}</div><div class="kpi-label">Активных партий</div></div></div>
-    <div class="col-lg-3 col-md-6"><div class="kpi-card"><div class="kpi-icon mb-2" style="background:#fef7e0;color:#b06000"><i class="bi bi-cart3"></i></div><div class="kpi-value">{{ active_orders }}</div><div class="kpi-label">Активных заказов</div></div></div>
-    <div class="col-lg-3 col-md-6"><div class="kpi-card"><div class="kpi-icon mb-2" style="background:#e6f4ea;color:#1e8e3e"><i class="bi bi-journal-check"></i></div><div class="kpi-value">{{ events_today }}</div><div class="kpi-label">Событий за сутки</div></div></div>
-    <div class="col-lg-3 col-md-6"><div class="kpi-card"><div class="kpi-icon mb-2" style="background:#fce8e6;color:#c5221f"><i class="bi bi-exclamation-triangle"></i></div><div class="kpi-value">{{ overdue_orders }}</div><div class="kpi-label">Просроченных заказов</div></div></div>
+    <div class="col-lg-3 col-md-6">
+        <a href="{% url 'ui:batch-list' %}?filter=active" style="text-decoration:none">
+            <div class="kpi-card" style="cursor:pointer">
+                <div class="kpi-icon mb-2" style="background:#e8f4fd;color:#1a73e8"><i class="bi bi-archive"></i></div>
+                <div class="kpi-value">{{ active_batches }}</div>
+                <div class="kpi-label">Активных партий</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <a href="{% url 'ui:order-list' %}?filter=active" style="text-decoration:none">
+            <div class="kpi-card" style="cursor:pointer">
+                <div class="kpi-icon mb-2" style="background:#fef7e0;color:#b06000"><i class="bi bi-cart3"></i></div>
+                <div class="kpi-value">{{ active_orders }}</div>
+                <div class="kpi-label">Активных заказов</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <a href="{% url 'ui:event-list' %}" style="text-decoration:none">
+            <div class="kpi-card" style="cursor:pointer">
+                <div class="kpi-icon mb-2" style="background:#e6f4ea;color:#1e8e3e"><i class="bi bi-journal-check"></i></div>
+                <div class="kpi-value">{{ events_today }}</div>
+                <div class="kpi-label">Событий за сутки</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <a href="{% url 'ui:order-list' %}?filter=overdue" style="text-decoration:none">
+            <div class="kpi-card" style="cursor:pointer">
+                <div class="kpi-icon mb-2" style="background:#fce8e6;color:#c5221f"><i class="bi bi-exclamation-triangle"></i></div>
+                <div class="kpi-value">{{ overdue_orders }}</div>
+                <div class="kpi-label">Просроченных заказов</div>
+            </div>
+        </a>
+    </div>
 </div>
 <div class="row g-3">
     <div class="col-lg-6">

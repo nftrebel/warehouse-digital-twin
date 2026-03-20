@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load l10n %}
+{% load core_filters %}
 {% block title %}Цифровой двойник{% endblock %}
 {% block page_title %}<i class="bi bi-diagram-3 me-2"></i>Экран цифрового двойника{% endblock %}
 {% block content %}
@@ -25,7 +27,7 @@
             {% if batches %}
             <div class="data-table"><table class="table"><thead><tr><th>Партия</th><th>Товар</th><th>Кол-во</th><th>Этап</th><th>Локация</th></tr></thead><tbody>
             {% for b in batches %}
-            <tr><td><a href="{% url 'ui:batch-detail' b.batch_id %}" class="row-link fw-semibold">{{ b.batch_number }}</a></td><td>{{ b.product.sku_code }}</td><td>{{ b.quantity_total }}</td><td><span class="badge badge-stage badge-{{ b.current_stage_code }}">{{ b.get_current_stage_code_display }}</span></td><td>{{ b.current_location.location_code|default:"—" }}</td></tr>
+            <tr><td><a href="{% url 'ui:batch-detail' b.batch_id %}" class="row-link fw-semibold">{{ b.batch_number }}</a></td><td>{{ b.product.sku_code }}</td><td>{{ b.quantity_total|qty }}</td><td><span class="badge badge-stage badge-{{ b.current_stage_code }}">{{ b.get_current_stage_code_display }}</span></td><td>{{ b.current_location.location_code|default:"—" }}</td></tr>
             {% endfor %}
             </tbody></table></div>
             {% else %}<p class="text-muted">Нет партий</p>{% endif %}
@@ -38,7 +40,7 @@
             <div class="data-table"><table class="table"><thead><tr><th>Заказ</th><th>Этап</th><th>Готовность</th></tr></thead><tbody>
             {% for o in orders %}
             <tr><td><a href="{% url 'ui:order-detail' o.order_id %}" class="row-link fw-semibold">{{ o.order_number }}</a></td><td><span class="badge badge-stage badge-{{ o.current_stage_code }}">{{ o.get_current_stage_code_display }}</span></td>
-            <td><div class="d-flex align-items-center"><div style="width:55px;height:6px;background:#f0f2f5;border-radius:3px;margin-right:5px"><div style="width:{{ o.completion_percent }}%;height:100%;background:#34a853;border-radius:3px"></div></div><span style="font-size:.78rem">{{ o.completion_percent }}%</span></div></td></tr>
+            <td><div class="d-flex align-items-center"><div style="width:55px;height:6px;background:#f0f2f5;border-radius:3px;margin-right:5px"><div style="width:{{ o.completion_percent|unlocalize }}%;height:100%;background:#34a853;border-radius:3px"></div></div><span style="font-size:.78rem">{{ o.completion_percent|unlocalize }}%</span></div></td></tr>
             {% endfor %}
             </tbody></table></div>
             {% else %}<p class="text-muted">Нет заказов</p>{% endif %}
