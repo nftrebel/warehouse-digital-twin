@@ -381,12 +381,14 @@ class EventProcessor:
                 reservation.reservation_status = 'picking'
                 reservation.save(update_fields=['picked_qty', 'reservation_status'])
 
-            # Обновляем партию
+            # Обновляем партию: подобранное переходит из резерва
+            batch.quantity_reserved -= qty_picked
             batch.quantity_picked += qty_picked
             batch.current_stage_code = 'picked'
             batch.last_event = event
             batch.save(update_fields=[
-                'quantity_picked', 'current_stage_code', 'last_event', 'updated_at',
+                'quantity_reserved', 'quantity_picked',
+                'current_stage_code', 'last_event', 'updated_at',
             ])
             event.batch = batch
 
@@ -451,11 +453,14 @@ class EventProcessor:
             res.save(update_fields=['reservation_status'])
 
             batch = res.batch
-            batch.quantity_shipped += res.reserved_qty
+            # Отгруженное переходит из подобранного
+            batch.quantity_picked -= res.picked_qty
+            batch.quantity_shipped += res.picked_qty
             batch.current_stage_code = 'shipped'
             batch.last_event = event
             batch.save(update_fields=[
-                'quantity_shipped', 'current_stage_code', 'last_event', 'updated_at',
+                'quantity_picked', 'quantity_shipped',
+                'current_stage_code', 'last_event', 'updated_at',
             ])
 
         event.order = order
