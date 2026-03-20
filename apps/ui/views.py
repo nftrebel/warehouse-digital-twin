@@ -107,6 +107,14 @@ def digital_twin(request):
         ('shipped', 'Отгружена'),
     ]
 
+    ORDER_STAGES = [
+        ('created', 'Создан'),
+        ('picking', 'Комплектация'),
+        ('assembled', 'Скомплектован'),
+        ('shipped', 'Отгружен'),
+        ('cancelled', 'Отменён'),
+    ]
+
     batch_counts = dict(
         Batch.objects.values_list('current_stage_code')
         .annotate(c=Count('batch_id'))
@@ -115,6 +123,16 @@ def digital_twin(request):
     batch_pipeline = [
         {'code': code, 'label': label, 'count': batch_counts.get(code, 0)}
         for code, label in BATCH_STAGES
+    ]
+
+    order_counts = dict(
+        CustomerOrder.objects.values_list('current_stage_code')
+        .annotate(c=Count('order_id'))
+        .values_list('current_stage_code', 'c')
+    )
+    order_pipeline = [
+        {'code': code, 'label': label, 'count': order_counts.get(code, 0)}
+        for code, label in ORDER_STAGES
     ]
 
     batches = (
@@ -137,6 +155,7 @@ def digital_twin(request):
     return render(request, 'ui/digital_twin.html', {
         'active_page': 'digital-twin',
         'batch_pipeline': batch_pipeline,
+        'order_pipeline': order_pipeline,
         'batches': batches,
         'orders': orders,
         'locations': locations,

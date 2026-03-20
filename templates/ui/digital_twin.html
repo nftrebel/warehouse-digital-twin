@@ -7,13 +7,26 @@
 <p class="text-muted mb-3" style="font-size:.85rem">
     Реконструированная картина текущего состояния складского процесса
 </p>
-<!-- Pipeline -->
+<!-- Pipeline: Партии -->
 <div class="section-card">
     <h5><i class="bi bi-arrow-right-circle me-2"></i>Конвейер: этапы партий</h5>
     <div class="d-flex flex-wrap gap-2 mb-2">
         {% for s in batch_pipeline %}
         <div class="text-center" style="min-width:95px">
             <div style="background:{% if s.count > 0 %}#6384ff{% else %}#dadce0{% endif %};color:#fff;border-radius:10px;padding:.55rem .3rem;font-size:1.25rem;font-weight:700">{{ s.count }}</div>
+            <div style="font-size:.7rem;margin-top:.25rem;color:#5a6077">{{ s.label }}</div>
+        </div>
+        {% if not forloop.last %}<div class="d-flex align-items-center" style="color:#dadce0;font-size:1.2rem"><i class="bi bi-chevron-right"></i></div>{% endif %}
+        {% endfor %}
+    </div>
+</div>
+<!-- Pipeline: Заказы -->
+<div class="section-card">
+    <h5><i class="bi bi-arrow-right-circle me-2"></i>Конвейер: этапы заказов</h5>
+    <div class="d-flex flex-wrap gap-2 mb-2">
+        {% for s in order_pipeline %}
+        <div class="text-center" style="min-width:95px">
+            <div style="background:{% if s.count > 0 %}#34a853{% else %}#dadce0{% endif %};color:#fff;border-radius:10px;padding:.55rem .3rem;font-size:1.25rem;font-weight:700">{{ s.count }}</div>
             <div style="font-size:.7rem;margin-top:.25rem;color:#5a6077">{{ s.label }}</div>
         </div>
         {% if not forloop.last %}<div class="d-flex align-items-center" style="color:#dadce0;font-size:1.2rem"><i class="bi bi-chevron-right"></i></div>{% endif %}
