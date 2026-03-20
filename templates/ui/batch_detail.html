@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Партия {{ batch.batch_number }}{% endblock %}
+{% block page_title %}<i class="bi bi-archive me-2"></i>Партия {{ batch.batch_number }}{% endblock %}
+{% block content %}
+<a href="{% url 'ui:batch-list' %}" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left me-1"></i>К списку партий</a>
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="section-card">
+            <h5>Основные данные</h5>
+            <div class="row g-3">
+                <div class="col-sm-4"><div class="detail-label">Номер партии</div><div class="detail-value">{{ batch.batch_number }}</div></div>
+                <div class="col-sm-4"><div class="detail-label">Товар</div><div class="detail-value">{{ batch.product.sku_code }}<br><small class="text-muted">{{ batch.product.product_name }}</small></div></div>
+                <div class="col-sm-4"><div class="detail-label">Ед. измерения</div><div class="detail-value">{{ batch.product.unit_of_measure }}</div></div>
+            </div>
+            <hr>
+            <div class="row g-3">
+                <div class="col-sm-3"><div class="detail-label">Всего</div><div class="detail-value">{{ batch.quantity_total }}</div></div>
+                <div class="col-sm-3"><div class="detail-label">Доступно</div><div class="detail-value text-success">{{ batch.quantity_available }}</div></div>
+                <div class="col-sm-3"><div class="detail-label">Зарезервировано</div><div class="detail-value text-warning">{{ batch.quantity_reserved }}</div></div>
+                <div class="col-sm-3"><div class="detail-label">Отгружено</div><div class="detail-value">{{ batch.quantity_shipped }}</div></div>
+            </div>
+        </div>
+        <!-- Events history -->
+        <div class="section-card">
+            <h5><i class="bi bi-clock-history me-2"></i>История событий партии</h5>
+            {% if events %}
+            <div class="data-table"><table class="table"><thead><tr><th>Время</th><th>Тип</th><th>Новый этап</th><th>Статус</th></tr></thead><tbody>
+            {% for e in events %}
+            <tr>
+                <td style="font-size:.82rem">{{ e.event_time|date:"d.m.Y H:i:s" }}</td>
+                <td><a href="{% url 'ui:event-detail' e.event_id %}" class="row-link"><code>{{ e.event_type_code }}</code></a></td>
+                <td>{% if e.new_stage_code %}<span class="badge badge-stage badge-{{ e.new_stage_code }}">{{ e.new_stage_code }}</span>{% else %}—{% endif %}</td>
+                <td><span class="badge badge-stage badge-{{ e.processing_status }}">{{ e.processing_status }}</span></td>
+            </tr>
+            {% endfor %}
+            </tbody></table></div>
+            {% else %}<p class="text-muted">Нет событий</p>{% endif %}
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="section-card">
+            <h5>Текущее состояние</h5>
+            <div class="text-center mb-3">
+                <span class="badge badge-stage badge-{{ batch.current_stage_code }}" style="font-size:1rem;padding:.5em 1.2em">{{ batch.get_current_stage_code_display }}</span>
+            </div>
+            <div class="detail-label">Текущая локация</div>
+            <div class="detail-value mb-2">{{ batch.current_location.location_code|default:"Не определена" }}</div>
+            <div class="detail-label">Дата поступления</div>
+            <div class="detail-value mb-2">{{ batch.receipt_date|date:"d.m.Y H:i"|default:"—" }}</div>
+            <div class="detail-label">Последнее обновление</div>
+            <div class="detail-value">{{ batch.updated_at|date:"d.m.Y H:i:s" }}</div>
+        </div>
+        <!-- Reservations -->
+        {% if reservations %}
+        <div class="section-card">
+            <h5><i class="bi bi-link-45deg me-2"></i>Резервирования</h5>
+            {% for r in reservations %}
+            <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid #f0f2f5">
+                <div>
+                    <a href="{% url 'ui:order-detail' r.order_line.order.order_id %}" class="row-link fw-semibold">{{ r.order_line.order.order_number }}</a>
+                    <div style="font-size:.75rem;color:#7b8094">{{ r.order_line.product.sku_code }} × {{ r.reserved_qty }}</div>
+                </div>
+                <span class="badge badge-stage badge-{{ r.reservation_status }}">{{ r.reservation_status }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

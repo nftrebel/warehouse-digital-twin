@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Дашборд{% endblock %}
+{% block page_title %}<i class="bi bi-speedometer2 me-2"></i>Главный дашборд{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6"><div class="kpi-card"><div class="kpi-icon mb-2" style="background:#e8f4fd;color:#1a73e8"><i class="bi bi-archive"></i></div><div class="kpi-value">{{ active_batches }}</div><div class="kpi-label">Активных партий</div></div></div>
+    <div class="col-lg-3 col-md-6"><div class="kpi-card"><div class="kpi-icon mb-2" style="background:#fef7e0;color:#b06000"><i class="bi bi-cart3"></i></div><div class="kpi-value">{{ active_orders }}</div><div class="kpi-label">Активных заказов</div></div></div>
+    <div class="col-lg-3 col-md-6"><div class="kpi-card"><div class="kpi-icon mb-2" style="background:#e6f4ea;color:#1e8e3e"><i class="bi bi-journal-check"></i></div><div class="kpi-value">{{ events_today }}</div><div class="kpi-label">Событий за сутки</div></div></div>
+    <div class="col-lg-3 col-md-6"><div class="kpi-card"><div class="kpi-icon mb-2" style="background:#fce8e6;color:#c5221f"><i class="bi bi-exclamation-triangle"></i></div><div class="kpi-value">{{ overdue_orders }}</div><div class="kpi-label">Просроченных заказов</div></div></div>
+</div>
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="section-card">
+            <h5><i class="bi bi-pie-chart me-2"></i>Партии по этапам</h5>
+            {% for s in batch_stages %}
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="badge badge-stage badge-{{ s.current_stage_code }}">{{ s.current_stage_code }}</span>
+                <div class="d-flex align-items-center">
+                    <div style="width:120px;height:8px;background:#f0f2f5;border-radius:4px;margin-right:8px"><div style="width:{{ s.percent }}%;height:100%;background:#6384ff;border-radius:4px"></div></div>
+                    <span class="fw-semibold" style="font-size:.85rem;min-width:30px;text-align:right">{{ s.count }}</span>
+                </div>
+            </div>
+            {% empty %}<p class="text-muted">Нет данных</p>{% endfor %}
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="section-card">
+            <h5><i class="bi bi-pie-chart me-2"></i>Заказы по этапам</h5>
+            {% for s in order_stages %}
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="badge badge-stage badge-{{ s.current_stage_code }}">{{ s.current_stage_code }}</span>
+                <div class="d-flex align-items-center">
+                    <div style="width:120px;height:8px;background:#f0f2f5;border-radius:4px;margin-right:8px"><div style="width:{{ s.percent }}%;height:100%;background:#34a853;border-radius:4px"></div></div>
+                    <span class="fw-semibold" style="font-size:.85rem;min-width:30px;text-align:right">{{ s.count }}</span>
+                </div>
+            </div>
+            {% empty %}<p class="text-muted">Нет данных</p>{% endfor %}
+        </div>
+    </div>
+</div>
+<div class="section-card mt-3">
+    <h5><i class="bi bi-clock-history me-2"></i>Последние события</h5>
+    {% if recent_events %}
+    <div class="data-table"><table class="table"><thead><tr><th>Время</th><th>Тип</th><th>Объект</th><th>Источник</th><th>Статус</th></tr></thead><tbody>
+    {% for e in recent_events %}
+    <tr>
+        <td style="font-size:.82rem">{{ e.event_time|date:"d.m.Y H:i:s" }}</td>
+        <td><a href="{% url 'ui:event-detail' e.event_id %}" class="row-link"><code>{{ e.event_type_code }}</code></a></td>
+        <td>{% if e.batch %}<a href="{% url 'ui:batch-detail' e.batch.batch_id %}" class="row-link"><i class="bi bi-archive"></i> {{ e.batch.batch_number }}</a>{% elif e.order %}<a href="{% url 'ui:order-detail' e.order.order_id %}" class="row-link"><i class="bi bi-cart3"></i> {{ e.order.order_number }}</a>{% else %}—{% endif %}</td>
+        <td>{{ e.source_system }}</td>
+        <td><span class="badge badge-stage badge-{{ e.processing_status }}">{{ e.processing_status }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody></table></div>
+    {% else %}<p class="text-muted">Нет событий</p>{% endif %}
+</div>
+{% endblock %}

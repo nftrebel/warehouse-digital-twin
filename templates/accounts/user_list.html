@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Пользователи{% endblock %}
+{% block page_title %}<i class="bi bi-people me-2"></i>Управление пользователями{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted mb-0" style="font-size:.85rem">Список учётных записей системы</p>
+    <a href="{% url 'accounts:user-create' %}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i>Новый пользователь</a>
+</div>
+<div class="data-table">
+    <table class="table">
+        <thead><tr><th>Логин</th><th>Полное имя</th><th>Роль</th><th>Статус</th><th>Создан</th><th>Действия</th></tr></thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td class="fw-semibold">{{ u.username }}</td>
+                <td>{{ u.full_name|default:"—" }}</td>
+                <td>
+                    {% if u.role_code == 'admin' %}
+                    <span class="badge" style="background:#f3e8fd;color:#7627bb">Администратор</span>
+                    {% else %}
+                    <span class="badge" style="background:#e8f4fd;color:#1a73e8">Аналитик</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if u.is_active %}
+                    <span class="badge" style="background:#e6f4ea;color:#137333">Активен</span>
+                    {% else %}
+                    <span class="badge" style="background:#fce8e6;color:#c5221f">Заблокирован</span>
+                    {% endif %}
+                </td>
+                <td style="font-size:.82rem">{{ u.date_joined|date:"d.m.Y H:i" }}</td>
+                <td>
+                    <a href="{% url 'accounts:user-edit' u.pk %}" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Редактировать"><i class="bi bi-pencil"></i></a>
+                    {% if u.pk != request.user.pk %}
+                    <a href="{% url 'accounts:user-toggle' u.pk %}" class="btn btn-sm btn-outline-{{ u.is_active|yesno:'warning,success' }} py-0 px-2" title="{{ u.is_active|yesno:'Заблокировать,Разблокировать' }}">
+                        <i class="bi bi-{{ u.is_active|yesno:'lock,unlock' }}"></i>
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center text-muted py-4">Нет пользователей</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

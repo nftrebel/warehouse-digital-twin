@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Партии{% endblock %}
+{% block page_title %}<i class="bi bi-archive me-2"></i>Партии товара{% endblock %}
+{% block content %}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-auto"><input type="text" name="search" value="{{ search }}" class="form-control form-control-sm" placeholder="Номер партии или SKU..."></div>
+        <div class="col-auto"><select name="stage" class="form-select form-select-sm"><option value="">Все этапы</option>
+        {% for val, label in stage_choices %}<option value="{{ val }}" {% if stage_filter == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></div>
+        <div class="col-auto"><button class="btn btn-sm btn-primary"><i class="bi bi-search me-1"></i>Найти</button></div>
+        {% if search or stage_filter %}<div class="col-auto"><a href="{% url 'ui:batch-list' %}" class="btn btn-sm btn-outline-secondary">Сбросить</a></div>{% endif %}
+    </form>
+</div>
+<div class="data-table">
+    <table class="table">
+        <thead><tr><th>Номер</th><th>Товар</th><th>Всего</th><th>Доступно</th><th>Зарезерв.</th><th>Этап</th><th>Локация</th><th>Обновлено</th></tr></thead>
+        <tbody>
+            {% for b in batches %}
+            <tr>
+                <td><a href="{% url 'ui:batch-detail' b.batch_id %}" class="row-link fw-semibold">{{ b.batch_number }}</a></td>
+                <td>{{ b.product.sku_code }}<br><small class="text-muted">{{ b.product.product_name }}</small></td>
+                <td>{{ b.quantity_total }}</td>
+                <td>{{ b.quantity_available }}</td>
+                <td>{{ b.quantity_reserved }}</td>
+                <td><span class="badge badge-stage badge-{{ b.current_stage_code }}">{{ b.get_current_stage_code_display }}</span></td>
+                <td>{{ b.current_location.location_code|default:"—" }}</td>
+                <td style="font-size:.8rem">{{ b.updated_at|date:"d.m.Y H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center text-muted py-4">Партии не найдены</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

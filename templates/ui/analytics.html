@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Аналитика и KPI{% endblock %}
+{% block page_title %}<i class="bi bi-graph-up me-2"></i>Аналитика и KPI{% endblock %}
+{% block content %}
+<!-- KPI cards -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-icon mb-2" style="background:#e8f4fd;color:#1a73e8"><i class="bi bi-clock"></i></div>
+            <div class="kpi-value">{{ avg_receive_to_place|default:"—" }}</div>
+            <div class="kpi-label">Ср. время приёмка → размещение</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-icon mb-2" style="background:#fef7e0;color:#b06000"><i class="bi bi-hourglass-split"></i></div>
+            <div class="kpi-value">{{ avg_pick_to_ship|default:"—" }}</div>
+            <div class="kpi-label">Ср. время комплектация → отгрузка</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-icon mb-2" style="background:#e6f4ea;color:#1e8e3e"><i class="bi bi-check-circle"></i></div>
+            <div class="kpi-value">{{ total_shipped_orders }}</div>
+            <div class="kpi-label">Отгружено заказов</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-icon mb-2" style="background:#fce8e6;color:#c5221f"><i class="bi bi-exclamation-diamond"></i></div>
+            <div class="kpi-value">{{ rejected_events }}</div>
+            <div class="kpi-label">Отклонённых событий</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Events by type -->
+    <div class="col-lg-6">
+        <div class="section-card">
+            <h5><i class="bi bi-bar-chart me-2"></i>События по типам</h5>
+            {% for item in events_by_type %}
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <code style="font-size:.8rem">{{ item.event_type_code }}</code>
+                <div class="d-flex align-items-center">
+                    <div style="width:140px;height:8px;background:#f0f2f5;border-radius:4px;margin-right:8px">
+                        <div style="width:{{ item.percent }}%;height:100%;background:#6384ff;border-radius:4px"></div>
+                    </div>
+                    <span class="fw-semibold" style="font-size:.82rem;min-width:30px;text-align:right">{{ item.count }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">Нет данных</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Events by source -->
+    <div class="col-lg-6">
+        <div class="section-card">
+            <h5><i class="bi bi-diagram-2 me-2"></i>События по источникам</h5>
+            {% for item in events_by_source %}
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span style="font-size:.85rem">{{ item.source_system }}</span>
+                <div class="d-flex align-items-center">
+                    <div style="width:140px;height:8px;background:#f0f2f5;border-radius:4px;margin-right:8px">
+                        <div style="width:{{ item.percent }}%;height:100%;background:#34a853;border-radius:4px"></div>
+                    </div>
+                    <span class="fw-semibold" style="font-size:.82rem;min-width:30px;text-align:right">{{ item.count }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">Нет данных</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Stage durations -->
+{% if stage_durations %}
+<div class="section-card">
+    <h5><i class="bi bi-stopwatch me-2"></i>Средняя длительность этапов партий</h5>
+    <div class="data-table">
+        <table class="table">
+            <thead><tr><th>Переход</th><th>Среднее время</th><th>Количество</th></tr></thead>
+            <tbody>
+                {% for d in stage_durations %}
+                <tr>
+                    <td><span class="badge badge-stage badge-{{ d.from_stage }}">{{ d.from_stage }}</span> → <span class="badge badge-stage badge-{{ d.to_stage }}">{{ d.to_stage }}</span></td>
+                    <td class="fw-semibold">{{ d.avg_duration }}</td>
+                    <td>{{ d.count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

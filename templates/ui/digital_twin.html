@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Цифровой двойник{% endblock %}
+{% block page_title %}<i class="bi bi-diagram-3 me-2"></i>Экран цифрового двойника{% endblock %}
+{% block content %}
+<p class="text-muted mb-3" style="font-size:.85rem">
+    Реконструированная картина текущего состояния складского процесса
+</p>
+<!-- Pipeline -->
+<div class="section-card">
+    <h5><i class="bi bi-arrow-right-circle me-2"></i>Конвейер: этапы партий</h5>
+    <div class="d-flex flex-wrap gap-2 mb-2">
+        {% for s in batch_pipeline %}
+        <div class="text-center" style="min-width:95px">
+            <div style="background:{% if s.count > 0 %}#6384ff{% else %}#dadce0{% endif %};color:#fff;border-radius:10px;padding:.55rem .3rem;font-size:1.25rem;font-weight:700">{{ s.count }}</div>
+            <div style="font-size:.7rem;margin-top:.25rem;color:#5a6077">{{ s.label }}</div>
+        </div>
+        {% if not forloop.last %}<div class="d-flex align-items-center" style="color:#dadce0;font-size:1.2rem"><i class="bi bi-chevron-right"></i></div>{% endif %}
+        {% endfor %}
+    </div>
+</div>
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="section-card">
+            <h5><i class="bi bi-archive me-2"></i>Партии</h5>
+            {% if batches %}
+            <div class="data-table"><table class="table"><thead><tr><th>Партия</th><th>Товар</th><th>Кол-во</th><th>Этап</th><th>Локация</th></tr></thead><tbody>
+            {% for b in batches %}
+            <tr><td><a href="{% url 'ui:batch-detail' b.batch_id %}" class="row-link fw-semibold">{{ b.batch_number }}</a></td><td>{{ b.product.sku_code }}</td><td>{{ b.quantity_total }}</td><td><span class="badge badge-stage badge-{{ b.current_stage_code }}">{{ b.get_current_stage_code_display }}</span></td><td>{{ b.current_location.location_code|default:"—" }}</td></tr>
+            {% endfor %}
+            </tbody></table></div>
+            {% else %}<p class="text-muted">Нет партий</p>{% endif %}
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="section-card">
+            <h5><i class="bi bi-cart3 me-2"></i>Заказы</h5>
+            {% if orders %}
+            <div class="data-table"><table class="table"><thead><tr><th>Заказ</th><th>Этап</th><th>Готовность</th></tr></thead><tbody>
+            {% for o in orders %}
+            <tr><td><a href="{% url 'ui:order-detail' o.order_id %}" class="row-link fw-semibold">{{ o.order_number }}</a></td><td><span class="badge badge-stage badge-{{ o.current_stage_code }}">{{ o.get_current_stage_code_display }}</span></td>
+            <td><div class="d-flex align-items-center"><div style="width:55px;height:6px;background:#f0f2f5;border-radius:3px;margin-right:5px"><div style="width:{{ o.completion_percent }}%;height:100%;background:#34a853;border-radius:3px"></div></div><span style="font-size:.78rem">{{ o.completion_percent }}%</span></div></td></tr>
+            {% endfor %}
+            </tbody></table></div>
+            {% else %}<p class="text-muted">Нет заказов</p>{% endif %}
+        </div>
+    </div>
+</div>
+<!-- Locations -->
+<div class="section-card">
+    <h5><i class="bi bi-geo-alt me-2"></i>Загрузка локаций</h5>
+    <div class="row g-2">
+        {% for loc in locations %}
+        <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+            <div style="background:{% if loc.batch_count > 0 %}#e8f4fd{% else %}#f8f9fb{% endif %};border:1px solid {% if loc.batch_count > 0 %}#b8d4f0{% else %}#e3e6ec{% endif %};border-radius:8px;padding:.55rem;text-align:center">
+                <div style="font-size:.76rem;font-weight:600">{{ loc.location_code }}</div>
+                <div style="font-size:.65rem;color:#7b8094">{{ loc.get_location_type_display }}</div>
+                <div style="font-size:1.05rem;font-weight:700;color:{% if loc.batch_count > 0 %}#1a73e8{% else %}#ccc{% endif %}">{{ loc.batch_count }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

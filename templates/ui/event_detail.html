@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Событие #{{ event.event_id }}{% endblock %}
+{% block page_title %}<i class="bi bi-journal-text me-2"></i>Событие #{{ event.event_id }}{% endblock %}
+{% block content %}
+<a href="{% url 'ui:event-list' %}" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left me-1"></i>К журналу</a>
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="section-card">
+            <h5>Атрибуты события</h5>
+            <div class="row g-3">
+                <div class="col-sm-6"><div class="detail-label">Внешний ID</div><div class="detail-value"><code>{{ event.external_event_id|default:"—" }}</code></div></div>
+                <div class="col-sm-6"><div class="detail-label">Тип события</div><div class="detail-value"><code>{{ event.event_type_code }}</code><br><small class="text-muted">{{ event.get_event_type_code_display }}</small></div></div>
+                <div class="col-sm-6"><div class="detail-label">Время возникновения</div><div class="detail-value">{{ event.event_time|date:"d.m.Y H:i:s" }}</div></div>
+                <div class="col-sm-6"><div class="detail-label">Время получения системой</div><div class="detail-value">{{ event.received_at|date:"d.m.Y H:i:s" }}</div></div>
+                <div class="col-sm-6"><div class="detail-label">Источник</div><div class="detail-value">{{ event.source_system }}</div></div>
+                <div class="col-sm-6"><div class="detail-label">Новый этап</div><div class="detail-value">{% if event.new_stage_code %}<span class="badge badge-stage badge-{{ event.new_stage_code }}">{{ event.new_stage_code }}</span>{% else %}—{% endif %}</div></div>
+            </div>
+        </div>
+        {% if event.payload_json %}
+        <div class="section-card">
+            <h5><i class="bi bi-code-square me-2"></i>Payload (полезная нагрузка)</h5>
+            <pre style="background:#f8f9fb;padding:1rem;border-radius:8px;font-size:.82rem;margin:0;overflow-x:auto">{{ payload_pretty }}</pre>
+        </div>
+        {% endif %}
+    </div>
+    <div class="col-lg-4">
+        <div class="section-card">
+            <h5>Статус обработки</h5>
+            <div class="text-center mb-3">
+                <span class="badge badge-stage badge-{{ event.processing_status }}" style="font-size:1rem;padding:.5em 1.2em">{{ event.get_processing_status_display }}</span>
+            </div>
+        </div>
+        <div class="section-card">
+            <h5><i class="bi bi-link-45deg me-2"></i>Связанные объекты</h5>
+            {% if event.batch %}
+            <div class="mb-2">
+                <div class="detail-label">Партия</div>
+                <a href="{% url 'ui:batch-detail' event.batch.batch_id %}" class="row-link fw-semibold"><i class="bi bi-archive me-1"></i>{{ event.batch.batch_number }}</a>
+            </div>
+            {% endif %}
+            {% if event.order %}
+            <div class="mb-2">
+                <div class="detail-label">Заказ</div>
+                <a href="{% url 'ui:order-detail' event.order.order_id %}" class="row-link fw-semibold"><i class="bi bi-cart3 me-1"></i>{{ event.order.order_number }}</a>
+            </div>
+            {% endif %}
+            {% if event.location %}
+            <div class="mb-2">
+                <div class="detail-label">Локация</div>
+                <div class="detail-value"><i class="bi bi-geo-alt me-1"></i>{{ event.location.location_code }}</div>
+            </div>
+            {% endif %}
+            {% if not event.batch and not event.order and not event.location %}
+            <p class="text-muted mb-0">Нет связанных объектов</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

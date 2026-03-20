@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Заказ {{ order.order_number }}{% endblock %}
+{% block page_title %}<i class="bi bi-cart3 me-2"></i>Заказ {{ order.order_number }}{% endblock %}
+{% block content %}
+<a href="{% url 'ui:order-list' %}" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left me-1"></i>К списку заказов</a>
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="section-card">
+            <h5>Основные данные</h5>
+            <div class="row g-3">
+                <div class="col-sm-3"><div class="detail-label">Номер</div><div class="detail-value">{{ order.order_number }}</div></div>
+                <div class="col-sm-3"><div class="detail-label">Приоритет</div><div class="detail-value priority-{{ order.priority_code }}">{{ order.get_priority_code_display }}</div></div>
+                <div class="col-sm-3"><div class="detail-label">Плановая отгрузка</div><div class="detail-value">{{ order.planned_ship_date|date:"d.m.Y H:i"|default:"—" }}</div></div>
+                <div class="col-sm-3"><div class="detail-label">Создан</div><div class="detail-value">{{ order.created_at|date:"d.m.Y H:i" }}</div></div>
+            </div>
+        </div>
+        <!-- Order lines -->
+        <div class="section-card">
+            <h5><i class="bi bi-list-check me-2"></i>Позиции заказа</h5>
+            {% if lines %}
+            <div class="data-table"><table class="table"><thead><tr><th>Товар</th><th>SKU</th><th>Требуется</th><th>Зарезервировано</th></tr></thead><tbody>
+            {% for line in lines %}
+            <tr>
+                <td>{{ line.product.product_name }}</td>
+                <td><code>{{ line.product.sku_code }}</code></td>
+                <td>{{ line.requested_qty }}</td>
+                <td>{{ line.total_reserved }}</td>
+            </tr>
+            {% endfor %}
+            </tbody></table></div>
+            {% else %}<p class="text-muted">Нет позиций</p>{% endif %}
+        </div>
+        <!-- Events -->
+        <div class="section-card">
+            <h5><i class="bi bi-clock-history me-2"></i>История событий заказа</h5>
+            {% if events %}
+            <div class="data-table"><table class="table"><thead><tr><th>Время</th><th>Тип</th><th>Новый этап</th><th>Статус</th></tr></thead><tbody>
+            {% for e in events %}
+            <tr>
+                <td style="font-size:.82rem">{{ e.event_time|date:"d.m.Y H:i:s" }}</td>
+                <td><a href="{% url 'ui:event-detail' e.event_id %}" class="row-link"><code>{{ e.event_type_code }}</code></a></td>
+                <td>{% if e.new_stage_code %}<span class="badge badge-stage badge-{{ e.new_stage_code }}">{{ e.new_stage_code }}</span>{% else %}—{% endif %}</td>
+                <td><span class="badge badge-stage badge-{{ e.processing_status }}">{{ e.processing_status }}</span></td>
+            </tr>
+            {% endfor %}
+            </tbody></table></div>
+            {% else %}<p class="text-muted">Нет событий</p>{% endif %}
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="section-card">
+            <h5>Текущее состояние</h5>
+            <div class="text-center mb-3">
+                <span class="badge badge-stage badge-{{ order.current_stage_code }}" style="font-size:1rem;padding:.5em 1.2em">{{ order.get_current_stage_code_display }}</span>
+            </div>
+            <div class="detail-label">Готовность</div>
+            <div class="mb-2">
+                <div style="height:10px;background:#f0f2f5;border-radius:5px;margin-bottom:4px">
+                    <div style="width:{{ order.completion_percent }}%;height:100%;background:#34a853;border-radius:5px"></div>
+                </div>
+                <span class="detail-value">{{ order.completion_percent }}%</span>
+            </div>
+            <div class="detail-label">Последнее обновление</div>
+            <div class="detail-value">{{ order.updated_at|date:"d.m.Y H:i:s" }}</div>
+        </div>
+        {% if reservations %}
+        <div class="section-card">
+            <h5><i class="bi bi-link-45deg me-2"></i>Связанные партии</h5>
+            {% for r in reservations %}
+            <div class="d-flex justify-content-between align-items-center mb-2 pb-2" style="border-bottom:1px solid #f0f2f5">
+                <div>
+                    <a href="{% url 'ui:batch-detail' r.batch.batch_id %}" class="row-link fw-semibold">{{ r.batch.batch_number }}</a>
+                    <div style="font-size:.75rem;color:#7b8094">{{ r.reserved_qty }} {{ r.batch.product.unit_of_measure }}</div>
+                </div>
+                <span class="badge badge-stage badge-{{ r.reservation_status }}">{{ r.reservation_status }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

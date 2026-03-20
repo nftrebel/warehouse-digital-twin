@@ -1,0 +1,166 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Цифровой двойник{% endblock %} | Склад</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root { --sidebar-w: 250px; }
+        body { background: #f0f2f5; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .sidebar {
+            position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh;
+            background: linear-gradient(180deg,#1a1f36,#252b48); color: #c2c7d0;
+            overflow-y: auto; z-index: 1000;
+        }
+        .sidebar .brand { padding: 1.2rem 1.2rem; border-bottom: 1px solid rgba(255,255,255,.08); }
+        .sidebar .brand h5 { color: #fff; margin: 0; font-size: .95rem; font-weight: 600; }
+        .sidebar .brand small { color: #7b8094; font-size: .72rem; }
+        .sidebar .nav-section {
+            padding: .9rem 1.2rem .35rem; font-size: .68rem; text-transform: uppercase;
+            letter-spacing: .08em; color: #5a6077; font-weight: 600;
+        }
+        .sidebar .nav-link {
+            color: #9ba2b4; padding: .55rem 1.2rem; font-size: .85rem;
+            border-left: 3px solid transparent; transition: .15s;
+        }
+        .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.05); }
+        .sidebar .nav-link.active { color: #fff; background: rgba(99,132,255,.15); border-left-color: #6384ff; }
+        .sidebar .nav-link i { width: 20px; margin-right: 8px; text-align: center; }
+        .main-content { margin-left: var(--sidebar-w); min-height: 100vh; }
+        .top-bar {
+            background: #fff; border-bottom: 1px solid #e3e6ec; padding: .7rem 1.5rem;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .top-bar h1 { font-size: 1.1rem; font-weight: 600; color: #1a1f36; margin: 0; }
+        .content-area { padding: 1.5rem; }
+        .kpi-card {
+            background: #fff; border-radius: 10px; padding: 1.15rem; border: 1px solid #e3e6ec;
+            transition: box-shadow .15s;
+        }
+        .kpi-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,.06); }
+        .kpi-card .kpi-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.15rem;
+        }
+        .kpi-card .kpi-value { font-size: 1.7rem; font-weight: 700; color: #1a1f36; line-height: 1; }
+        .kpi-card .kpi-label { font-size: .78rem; color: #7b8094; margin-top: .2rem; }
+        .data-table { background: #fff; border-radius: 10px; border: 1px solid #e3e6ec; overflow: hidden; }
+        .data-table .table { margin-bottom: 0; }
+        .data-table .table thead th {
+            background: #f8f9fb; border-bottom: 2px solid #e3e6ec; font-size: .75rem;
+            text-transform: uppercase; letter-spacing: .04em; color: #5a6077; font-weight: 600; padding: .7rem 1rem;
+        }
+        .data-table .table tbody td {
+            padding: .65rem 1rem; font-size: .85rem; vertical-align: middle; border-color: #f0f2f5;
+        }
+        .data-table .table tbody tr:hover { background: #f8f9fb; }
+        .badge-stage { font-size: .73rem; padding: .3em .65em; border-radius: 6px; font-weight: 500; }
+        .badge-expected { background: #f0f0f0; color: #666; }
+        .badge-received { background: #e8f4fd; color: #1a73e8; }
+        .badge-placed { background: #e6f4ea; color: #1e8e3e; }
+        .badge-stored { background: #e6f4ea; color: #137333; }
+        .badge-reserved { background: #fef7e0; color: #b06000; }
+        .badge-picking { background: #fce8e6; color: #c5221f; }
+        .badge-picked { background: #f3e8fd; color: #7627bb; }
+        .badge-shipped { background: #e8eaed; color: #3c4043; }
+        .badge-closed { background: #dadce0; color: #5f6368; }
+        .badge-created { background: #e8f4fd; color: #1a73e8; }
+        .badge-queued { background: #fef7e0; color: #b06000; }
+        .badge-assembled { background: #e6f4ea; color: #1e8e3e; }
+        .badge-cancelled { background: #fce8e6; color: #c5221f; }
+        .badge-applied { background: #e6f4ea; color: #137333; }
+        .badge-rejected { background: #fce8e6; color: #c5221f; }
+        .priority-urgent { color: #c5221f; font-weight: 600; }
+        .priority-high { color: #e37400; font-weight: 600; }
+        .priority-normal { color: #3c4043; }
+        .priority-low { color: #80868b; }
+        .section-card {
+            background: #fff; border-radius: 10px; border: 1px solid #e3e6ec;
+            padding: 1.2rem; margin-bottom: 1.5rem;
+        }
+        .section-card h5 { font-size: .92rem; font-weight: 600; color: #1a1f36; margin-bottom: .9rem; }
+        .filter-bar {
+            background: #fff; border-radius: 10px; border: 1px solid #e3e6ec;
+            padding: .85rem 1.1rem; margin-bottom: 1rem;
+        }
+        .detail-label { font-size: .78rem; color: #7b8094; margin-bottom: .15rem; }
+        .detail-value { font-size: .95rem; font-weight: 500; color: #1a1f36; }
+        a.row-link { color: inherit; text-decoration: none; }
+        a.row-link:hover { color: #1a73e8; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="brand">
+            <h5><i class="bi bi-box-seam me-2"></i>Цифровой двойник</h5>
+            <small>Складская логистика</small>
+        </div>
+        <div class="nav-section">Мониторинг</div>
+        <a href="{% url 'ui:dashboard' %}" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i> Дашборд</a>
+        <a href="{% url 'ui:digital-twin' %}" class="nav-link {% if active_page == 'digital-twin' %}active{% endif %}">
+            <i class="bi bi-diagram-3"></i> Цифровой двойник</a>
+        <div class="nav-section">Объекты</div>
+        <a href="{% url 'ui:batch-list' %}" class="nav-link {% if active_page == 'batches' %}active{% endif %}">
+            <i class="bi bi-archive"></i> Партии</a>
+        <a href="{% url 'ui:order-list' %}" class="nav-link {% if active_page == 'orders' %}active{% endif %}">
+            <i class="bi bi-cart3"></i> Заказы</a>
+        <a href="{% url 'ui:location-list' %}" class="nav-link {% if active_page == 'locations' %}active{% endif %}">
+            <i class="bi bi-geo-alt"></i> Склад и ячейки</a>
+        <div class="nav-section">Журнал</div>
+        <a href="{% url 'ui:event-list' %}" class="nav-link {% if active_page == 'events' %}active{% endif %}">
+            <i class="bi bi-journal-text"></i> События</a>
+        <div class="nav-section">Аналитика</div>
+        <a href="{% url 'ui:analytics' %}" class="nav-link {% if active_page == 'analytics' %}active{% endif %}">
+            <i class="bi bi-graph-up"></i> KPI и аналитика</a>
+        {% if user.is_authenticated and user.role_code == 'admin' or user.is_superuser %}
+        <div class="nav-section">Администрирование</div>
+        <a href="{% url 'accounts:user-list' %}" class="nav-link {% if active_page == 'users' %}active{% endif %}">
+            <i class="bi bi-people"></i> Пользователи</a>
+        {% endif %}
+        {% if user.is_authenticated %}
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:1rem 1.2rem;border-top:1px solid rgba(255,255,255,.08)">
+            <div style="font-size:.8rem;color:#9ba2b4;margin-bottom:.4rem">
+                <i class="bi bi-person-circle me-1"></i>{{ user.full_name|default:user.username }}
+            </div>
+            <div style="font-size:.7rem;color:#5a6077;margin-bottom:.5rem">
+                {% if user.role_code == 'admin' %}Администратор{% else %}Аналитик{% endif %}
+            </div>
+            <a href="{% url 'accounts:logout' %}" class="btn btn-sm btn-outline-light w-100" style="font-size:.75rem;padding:.3rem;opacity:.7">
+                <i class="bi bi-box-arrow-left me-1"></i>Выход
+            </a>
+        </div>
+        {% endif %}
+    </nav>
+    <div class="main-content">
+        <div class="top-bar">
+            <h1>{% block page_title %}Дашборд{% endblock %}</h1>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-muted" style="font-size:.82rem"><i class="bi bi-clock me-1"></i>{% now "d.m.Y H:i" %}</span>
+                {% if user.is_authenticated %}
+                <span style="font-size:.82rem;color:#5a6077">
+                    <i class="bi bi-person-circle me-1"></i>{{ user.username }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="content-area">
+            {% if messages %}
+            {% for msg in messages %}
+            <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}{{ msg.tags }}{% endif %} alert-dismissible fade show py-2" style="font-size:.85rem" role="alert">
+                {{ msg }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" style="font-size:.7rem"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

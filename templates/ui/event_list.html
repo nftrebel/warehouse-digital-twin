@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Журнал событий{% endblock %}
+{% block page_title %}<i class="bi bi-journal-text me-2"></i>Журнал событий{% endblock %}
+{% block content %}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-auto"><select name="event_type" class="form-select form-select-sm"><option value="">Все типы</option>
+        {% for val, label in type_choices %}<option value="{{ val }}" {% if type_filter == val %}selected{% endif %}>{{ val }}</option>{% endfor %}
+        </select></div>
+        <div class="col-auto"><select name="status" class="form-select form-select-sm"><option value="">Все статусы</option>
+        {% for val, label in status_choices %}<option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></div>
+        <div class="col-auto"><input type="text" name="search" value="{{ search }}" class="form-control form-control-sm" placeholder="Партия или заказ..."></div>
+        <div class="col-auto"><button class="btn btn-sm btn-primary"><i class="bi bi-search me-1"></i>Найти</button></div>
+        {% if type_filter or status_filter or search %}<div class="col-auto"><a href="{% url 'ui:event-list' %}" class="btn btn-sm btn-outline-secondary">Сбросить</a></div>{% endif %}
+    </form>
+</div>
+<div class="data-table">
+    <table class="table">
+        <thead><tr><th>#</th><th>Время события</th><th>Тип</th><th>Источник</th><th>Объект</th><th>Новый этап</th><th>Статус</th></tr></thead>
+        <tbody>
+            {% for e in events %}
+            <tr>
+                <td><a href="{% url 'ui:event-detail' e.event_id %}" class="row-link">{{ e.event_id }}</a></td>
+                <td style="font-size:.82rem">{{ e.event_time|date:"d.m.Y H:i:s" }}</td>
+                <td><code style="font-size:.8rem">{{ e.event_type_code }}</code></td>
+                <td style="font-size:.82rem">{{ e.source_system }}</td>
+                <td>
+                    {% if e.batch %}<a href="{% url 'ui:batch-detail' e.batch.batch_id %}" class="row-link"><i class="bi bi-archive"></i> {{ e.batch.batch_number }}</a>
+                    {% elif e.order %}<a href="{% url 'ui:order-detail' e.order.order_id %}" class="row-link"><i class="bi bi-cart3"></i> {{ e.order.order_number }}</a>
+                    {% else %}—{% endif %}
+                </td>
+                <td>{% if e.new_stage_code %}<span class="badge badge-stage badge-{{ e.new_stage_code }}">{{ e.new_stage_code }}</span>{% else %}—{% endif %}</td>
+                <td><span class="badge badge-stage badge-{{ e.processing_status }}">{{ e.processing_status }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-muted py-4">События не найдены</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

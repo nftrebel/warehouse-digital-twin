@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Заказы{% endblock %}
+{% block page_title %}<i class="bi bi-cart3 me-2"></i>Заказы{% endblock %}
+{% block content %}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-auto"><input type="text" name="search" value="{{ search }}" class="form-control form-control-sm" placeholder="Номер заказа..."></div>
+        <div class="col-auto"><select name="stage" class="form-select form-select-sm"><option value="">Все этапы</option>
+        {% for val, label in stage_choices %}<option value="{{ val }}" {% if stage_filter == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></div>
+        <div class="col-auto"><select name="priority" class="form-select form-select-sm"><option value="">Все приоритеты</option>
+        {% for val, label in priority_choices %}<option value="{{ val }}" {% if priority_filter == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></div>
+        <div class="col-auto"><button class="btn btn-sm btn-primary"><i class="bi bi-search me-1"></i>Найти</button></div>
+        {% if search or stage_filter or priority_filter %}<div class="col-auto"><a href="{% url 'ui:order-list' %}" class="btn btn-sm btn-outline-secondary">Сбросить</a></div>{% endif %}
+    </form>
+</div>
+<div class="data-table">
+    <table class="table">
+        <thead><tr><th>Номер</th><th>Приоритет</th><th>Этап</th><th>Готовность</th><th>План. отгрузка</th><th>Создан</th></tr></thead>
+        <tbody>
+            {% for o in orders %}
+            <tr>
+                <td><a href="{% url 'ui:order-detail' o.order_id %}" class="row-link fw-semibold">{{ o.order_number }}</a></td>
+                <td><span class="priority-{{ o.priority_code }}">{{ o.get_priority_code_display }}</span></td>
+                <td><span class="badge badge-stage badge-{{ o.current_stage_code }}">{{ o.get_current_stage_code_display }}</span></td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div style="width:60px;height:6px;background:#f0f2f5;border-radius:3px;margin-right:6px">
+                            <div style="width:{{ o.completion_percent }}%;height:100%;background:#34a853;border-radius:3px"></div>
+                        </div>
+                        <span style="font-size:.8rem">{{ o.completion_percent }}%</span>
+                    </div>
+                </td>
+                <td style="font-size:.82rem">{{ o.planned_ship_date|date:"d.m.Y H:i"|default:"—" }}</td>
+                <td style="font-size:.82rem">{{ o.created_at|date:"d.m.Y H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center text-muted py-4">Заказы не найдены</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

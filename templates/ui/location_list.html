@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Склад и ячейки{% endblock %}
+{% block page_title %}<i class="bi bi-geo-alt me-2"></i>Склад и ячейки{% endblock %}
+{% block content %}
+<div class="data-table">
+    <table class="table">
+        <thead><tr><th>Код</th><th>Название</th><th>Тип</th><th>Партий размещено</th></tr></thead>
+        <tbody>
+            {% for loc in locations %}
+            <tr>
+                <td class="fw-semibold">{{ loc.location_code }}</td>
+                <td>{{ loc.location_name }}</td>
+                <td><span class="badge badge-stage badge-placed">{{ loc.get_location_type_display }}</span></td>
+                <td>
+                    {% if loc.batch_count > 0 %}
+                    <span class="fw-semibold text-primary">{{ loc.batch_count }}</span>
+                    {% else %}<span class="text-muted">0</span>{% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-4">Локации не найдены</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

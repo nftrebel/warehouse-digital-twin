@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ form_title }}{% endblock %}
+{% block page_title %}<i class="bi bi-person-gear me-2"></i>{{ form_title }}{% endblock %}
+{% block content %}
+<a href="{% url 'accounts:user-list' %}" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-arrow-left me-1"></i>К списку пользователей</a>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="section-card">
+            <form method="post">
+                {% csrf_token %}
+
+                {% if form.errors %}
+                <div class="alert alert-danger py-2" style="font-size:.85rem">
+                    <i class="bi bi-exclamation-circle me-1"></i>Пожалуйста, исправьте ошибки ниже
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                        <div>{{ error }}</div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label class="form-label" style="font-size:.85rem;font-weight:500">Логин <span class="text-danger">*</span></label>
+                    <input type="text" name="username" value="{{ form.username.value|default:'' }}" class="form-control {% if form.username.errors %}is-invalid{% endif %}" required {% if is_edit %}readonly{% endif %}>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" style="font-size:.85rem;font-weight:500">Полное имя <span class="text-danger">*</span></label>
+                    <input type="text" name="full_name" value="{{ form.full_name.value|default:'' }}" class="form-control {% if form.full_name.errors %}is-invalid{% endif %}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" style="font-size:.85rem;font-weight:500">Роль <span class="text-danger">*</span></label>
+                    <select name="role_code" class="form-select">
+                        <option value="analyst" {% if form.role_code.value == 'analyst' %}selected{% endif %}>Аналитик</option>
+                        <option value="admin" {% if form.role_code.value == 'admin' %}selected{% endif %}>Администратор</option>
+                    </select>
+                </div>
+
+                {% if not is_edit %}
+                <div class="mb-3">
+                    <label class="form-label" style="font-size:.85rem;font-weight:500">Пароль <span class="text-danger">*</span></label>
+                    <input type="password" name="password" class="form-control" {% if not is_edit %}required{% endif %}>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" style="font-size:.85rem;font-weight:500">Подтверждение пароля <span class="text-danger">*</span></label>
+                    <input type="password" name="password_confirm" class="form-control" {% if not is_edit %}required{% endif %}>
+                </div>
+                {% else %}
+                <div class="mb-3">
+                    <label class="form-label" style="font-size:.85rem;font-weight:500">Новый пароль <small class="text-muted">(оставьте пустым, если не меняется)</small></label>
+                    <input type="password" name="password" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" style="font-size:.85rem;font-weight:500">Подтверждение пароля</label>
+                    <input type="password" name="password_confirm" class="form-control">
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>{{ is_edit|yesno:'Сохранить,Создать' }}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
