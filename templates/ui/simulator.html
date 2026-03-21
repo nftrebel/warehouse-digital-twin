@@ -32,10 +32,6 @@
                             <optgroup label="Отгрузка">
                                 <option value="shipment.dispatched">shipment.dispatched — Отгрузка</option>
                             </optgroup>
-                            <optgroup label="Локации">
-                                <option value="location.blocked">location.blocked — Блокировка</option>
-                                <option value="location.unblocked">location.unblocked — Разблокировка</option>
-                            </optgroup>
                         </select>
                     </div>
                     <div class="col-md-6">
@@ -92,13 +88,6 @@
                     <i class="bi bi-cart-plus me-2"></i>Создать новый заказ
                 </button>
             </form>
-            <form method="post">
-                {% csrf_token %}
-                <input type="hidden" name="quick_scenario" value="block_location">
-                <button type="submit" class="btn btn-sm btn-outline-warning w-100 mb-2 text-start">
-                    <i class="bi bi-lock me-2"></i>Заблокировать PICK-02
-                </button>
-            </form>
         </div>
 
         <div class="section-card">
@@ -151,12 +140,6 @@ const templates = {
     'shipment.dispatched': JSON.stringify({
         order_number: 'ORD-NEW-001', shipment_number: 'SHP-NEW-001',
         dispatched_at: new Date().toISOString()
-    }, null, 2),
-    'location.blocked': JSON.stringify({
-        location_code: 'PICK-02', reason: 'Техническое обслуживание'
-    }, null, 2),
-    'location.unblocked': JSON.stringify({
-        location_code: 'PICK-02'
     }, null, 2),
 };
 document.getElementById('eventType').addEventListener('change', function() {

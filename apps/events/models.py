@@ -35,8 +35,6 @@ class ProcessEvent(models.Model):
         ('order.item_picked', 'Позиция подобрана'),
         ('order.assembled', 'Комплектация завершена'),
         ('shipment.dispatched', 'Отгрузка выполнена'),
-        ('location.blocked', 'Локация заблокирована'),
-        ('location.unblocked', 'Локация разблокирована'),
     ]
 
     PROCESSING_STATUS_CHOICES = [

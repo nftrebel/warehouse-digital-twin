@@ -56,8 +56,6 @@ class DigitalTwinService:
         'order.item_picked': '_handle_order_item_picked',
         'order.assembled': '_handle_order_assembled',
         'shipment.dispatched': '_handle_shipment_dispatched',
-        'location.blocked': '_handle_location_blocked',
-        'location.unblocked': '_handle_location_unblocked',
     }
 
     @transaction.atomic
@@ -463,34 +461,6 @@ class DigitalTwinService:
         event.save(update_fields=['order', 'new_stage_code'])
 
         return f'Заказ {order_number} отгружен'
-
-    # -----------------------------------------------------------------------
-    # Обработчики событий локаций
-    # -----------------------------------------------------------------------
-
-    def _handle_location_blocked(self, event: ProcessEvent, data: dict) -> str:
-        """location.blocked — Ячейка временно заблокирована."""
-        payload = data.get('payload', {})
-        location_code = payload.get('location_code', data['object_id'])
-
-        location = self._get_location(location_code)
-        event.location = location
-        event.new_stage_code = 'blocked'
-        event.save(update_fields=['location', 'new_stage_code'])
-
-        return f'Локация {location_code} заблокирована'
-
-    def _handle_location_unblocked(self, event: ProcessEvent, data: dict) -> str:
-        """location.unblocked — Ячейка снова доступна."""
-        payload = data.get('payload', {})
-        location_code = payload.get('location_code', data['object_id'])
-
-        location = self._get_location(location_code)
-        event.location = location
-        event.new_stage_code = 'active'
-        event.save(update_fields=['location', 'new_stage_code'])
-
-        return f'Локация {location_code} разблокирована'
 
     # -----------------------------------------------------------------------
     # Вспомогательные методы

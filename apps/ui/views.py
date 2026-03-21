@@ -44,11 +44,11 @@ def dashboard(request):
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     active_batches = Batch.objects.exclude(current_stage_code='shipped').count()
-    active_orders = CustomerOrder.objects.exclude(current_stage_code__in=['shipped', 'cancelled']).count()
+    active_orders = CustomerOrder.objects.exclude(current_stage_code='shipped').count()
     events_today = ProcessEvent.objects.filter(received_at__gte=today_start).count()
     overdue_orders = CustomerOrder.objects.filter(
         planned_ship_date__lt=now,
-    ).exclude(current_stage_code__in=['shipped', 'cancelled']).count()
+    ).exclude(current_stage_code='shipped').count()
 
     # Batch stages distribution
     batch_stages_qs = (
@@ -112,7 +112,6 @@ def digital_twin(request):
         ('picking', 'Комплектация'),
         ('assembled', 'Скомплектован'),
         ('shipped', 'Отгружен'),
-        ('cancelled', 'Отменён'),
     ]
 
     batch_counts = dict(
@@ -143,7 +142,6 @@ def digital_twin(request):
     )
     orders = (
         CustomerOrder.objects
-        .exclude(current_stage_code='cancelled')
         .order_by('-updated_at')[:50]
     )
     locations = (
@@ -237,11 +235,11 @@ def order_list(request):
 
     # Быстрые фильтры с дашборда
     if quick_filter == 'active':
-        qs = qs.exclude(current_stage_code__in=['shipped', 'cancelled'])
+        qs = qs.exclude(current_stage_code='shipped')
     elif quick_filter == 'overdue':
         qs = qs.filter(
             planned_ship_date__lt=timezone.now(),
-        ).exclude(current_stage_code__in=['shipped', 'cancelled'])
+        ).exclude(current_stage_code='shipped')
 
     if search:
         qs = qs.filter(order_number__icontains=search)
@@ -402,7 +400,7 @@ def analytics(request):
 
     overdue_orders = CustomerOrder.objects.filter(
         planned_ship_date__lt=timezone.now(),
-    ).exclude(current_stage_code__in=['shipped', 'cancelled']).count()
+    ).exclude(current_stage_code='shipped').count()
 
     # Simple avg times
     avg_receive_to_place = _calc_avg_transition('batch.received', 'batch.placed')
@@ -659,21 +657,6 @@ def _run_quick_scenario(scenario, processor, now):
                 'priority': 'normal',
                 'planned_ship_at': (now + timedelta(days=2)).isoformat(),
                 'items': [{'product_sku': 'SKU-1001', 'qty_requested': 10}],
-            },
-        })
-
-    elif scenario == 'block_location':
-        return processor.process_event({
-            'event_id': f'sim-{uuid.uuid4().hex[:12]}',
-            'event_type': 'location.blocked',
-            'occurred_at': now,
-            'source_system': 'simulator',
-            'warehouse_code': 'WH-01',
-            'object_type': 'location',
-            'object_id': 'PICK-02',
-            'payload': {
-                'location_code': 'PICK-02',
-                'reason': 'Техническое обслуживание (симуляция)',
             },
         })
 

@@ -132,8 +132,6 @@ VALID_EVENT_TYPES = [
     'order.item_picked',
     'order.assembled',
     'shipment.dispatched',
-    'location.blocked',
-    'location.unblocked',
 ]
 
 

@@ -27,7 +27,6 @@ class CustomerOrder(models.Model):
         ('picking', 'Комплектация'),
         ('assembled', 'Скомплектован'),
         ('shipped', 'Отгружен'),
-        ('cancelled', 'Отменён'),
     ]
 
     PRIORITY_CHOICES = [

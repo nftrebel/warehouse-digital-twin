@@ -46,8 +46,7 @@ class Command(BaseCommand):
         self._scenario2_multi_orders()
         self._scenario3_partial_states()
         self._scenario4_delays()
-        self._scenario5_location_ops()
-        self._scenario6_analytics_bulk()
+        self._scenario5_analytics_bulk()
         self._summary()
 
     # ---- helpers ----
@@ -367,25 +366,9 @@ class Command(BaseCommand):
         }, 'batch', 'BATCH-015', 'scanner')
         self.stdout.write('   ✅ BATCH-015: received >48ч (аномалия)')
 
-    # ==== Сценарий 5: Блокировка локаций (location.*) ====
-    def _scenario5_location_ops(self):
-        self.stdout.write('\n🔒 Сценарий 5: Блокировка/разблокировка')
-        b = self.now - timedelta(hours=12)
-
-        self._evt('location.blocked', b, {
-            'location_code': 'A-02-01', 'reason': 'Инвентаризация',
-        }, 'location', 'A-02-01', 'manual')
-        self._evt('location.unblocked', b+timedelta(hours=4), {
-            'location_code': 'A-02-01',
-        }, 'location', 'A-02-01', 'manual')
-        self._evt('location.blocked', self.now-timedelta(hours=2), {
-            'location_code': 'BUF-01', 'reason': 'Повреждение стеллажа',
-        }, 'location', 'BUF-01', 'manual')
-        self.stdout.write('   ✅ A-02-01: blocked→unblocked; BUF-01: blocked')
-
-    # ==== Сценарий 6: Массовые данные для аналитики (UC-3,4,8 FR-7..11,21..25) ====
-    def _scenario6_analytics_bulk(self):
-        self.stdout.write('\n📊 Сценарий 6: Данные для аналитики и KPI')
+    # ==== Сценарий 5: Массовые данные для аналитики (UC-3,4,8 FR-7..11,21..25) ====
+    def _scenario5_analytics_bulk(self):
+        self.stdout.write('\n📊 Сценарий 5: Данные для аналитики и KPI')
 
         for d in range(7, 3, -1):
             b = self.now - timedelta(days=d)
@@ -453,7 +436,7 @@ class Command(BaseCommand):
 
         overdue = CustomerOrder.objects.filter(
             planned_ship_date__lt=self.now
-        ).exclude(current_stage_code__in=['shipped','cancelled']).count()
+        ).exclude(current_stage_code='shipped').count()
         self.stdout.write(f'\n   ⚠️  Просроченных заказов: {overdue}')
         self.stdout.write(self.style.SUCCESS(
             f'\n✅ Всего событий: {self.cnt}'
