@@ -6,7 +6,7 @@ Views веб-интерфейса цифрового двойника.
 
 import json
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from functools import wraps
 from django.contrib.auth.decorators import login_required
@@ -368,11 +368,39 @@ def location_list(request):
 
 @analyst_required
 def analytics(request):
-    total_events = ProcessEvent.objects.count() or 1
+    # Парсим диапазон дат
+    date_from_str = request.GET.get('date_from', '').strip()
+    date_to_str = request.GET.get('date_to', '').strip()
+
+    date_from = None
+    date_to = None
+
+    if date_from_str:
+        try:
+            date_from = timezone.make_aware(datetime.strptime(date_from_str, '%Y-%m-%d'))
+        except ValueError:
+            pass
+
+    if date_to_str:
+        try:
+            date_to = timezone.make_aware(
+                datetime.strptime(date_to_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            )
+        except ValueError:
+            pass
+
+    # Базовый queryset событий с учётом диапазона
+    events_qs = ProcessEvent.objects.filter(processing_status='applied')
+    if date_from:
+        events_qs = events_qs.filter(event_time__gte=date_from)
+    if date_to:
+        events_qs = events_qs.filter(event_time__lte=date_to)
+
+    total_events = events_qs.count() or 1
 
     # Events by type
     events_by_type = list(
-        ProcessEvent.objects
+        events_qs
         .values('event_type_code')
         .annotate(count=Count('event_id'))
         .order_by('-count')
@@ -382,7 +410,7 @@ def analytics(request):
 
     # Events by source
     events_by_source = list(
-        ProcessEvent.objects
+        events_qs
         .values('source_system')
         .annotate(count=Count('event_id'))
         .order_by('-count')
@@ -391,20 +419,31 @@ def analytics(request):
         item['percent'] = round(item['count'] / total_events * 100)
 
     # Stage durations
-    batch_durations = _calc_batch_durations()
-    order_durations = _calc_order_durations()
+    batch_durations = _calc_batch_durations(date_from, date_to)
+    order_durations = _calc_order_durations(date_from, date_to)
 
-    total_shipped_orders = CustomerOrder.objects.filter(
-        current_stage_code='shipped'
-    ).count()
+    # Shipped orders in period
+    shipped_qs = events_qs.filter(event_type_code='shipment.dispatched')
+    total_shipped_orders = shipped_qs.values('order_id').distinct().count()
 
+    # Overdue orders (always current)
     overdue_orders = CustomerOrder.objects.filter(
         planned_ship_date__lt=timezone.now(),
     ).exclude(current_stage_code='shipped').count()
 
-    # Simple avg times
-    avg_receive_to_place = _calc_avg_transition('batch.received', 'batch.placed')
-    avg_pick_to_ship = _calc_avg_transition('order.picking_started', 'shipment.dispatched')
+    # Avg times
+    avg_receive_to_place = _calc_avg_transition('batch.received', 'batch.placed', date_from, date_to)
+    avg_pick_to_ship = _calc_avg_transition('order.picking_started', 'shipment.dispatched', date_from, date_to)
+
+    # Total events in period
+    total_events_in_period = events_qs.count()
+
+    # Quick date shortcuts for buttons
+    now = timezone.now()
+    quick_today = now.strftime('%Y-%m-%d')
+    quick_7d = (now - timedelta(days=7)).strftime('%Y-%m-%d')
+    quick_30d = (now - timedelta(days=30)).strftime('%Y-%m-%d')
+    quick_90d = (now - timedelta(days=90)).strftime('%Y-%m-%d')
 
     return render(request, 'ui/analytics.html', {
         'active_page': 'analytics',
@@ -416,18 +455,33 @@ def analytics(request):
         'overdue_orders': overdue_orders,
         'avg_receive_to_place': avg_receive_to_place,
         'avg_pick_to_ship': avg_pick_to_ship,
+        'total_events_in_period': total_events_in_period,
+        'date_from': date_from_str,
+        'date_to': date_to_str,
+        'has_filter': bool(date_from_str or date_to_str),
+        'quick_today': quick_today,
+        'quick_7d': quick_7d,
+        'quick_30d': quick_30d,
+        'quick_90d': quick_90d,
     })
 
 
-def _calc_avg_transition(from_type, to_type):
-    """Calculate average time between two event types for the same batch/order."""
-    from_events = ProcessEvent.objects.filter(
-        event_type_code=from_type, processing_status='applied'
-    ).values('batch_id', 'order_id', 'event_time')
+def _build_event_qs(date_from=None, date_to=None):
+    """Базовый queryset событий с фильтрацией по диапазону."""
+    qs = ProcessEvent.objects.filter(processing_status='applied')
+    if date_from:
+        qs = qs.filter(event_time__gte=date_from)
+    if date_to:
+        qs = qs.filter(event_time__lte=date_to)
+    return qs
 
-    to_events = ProcessEvent.objects.filter(
-        event_type_code=to_type, processing_status='applied'
-    ).values('batch_id', 'order_id', 'event_time')
+
+def _calc_avg_transition(from_type, to_type, date_from=None, date_to=None):
+    """Calculate average time between two event types for the same batch/order."""
+    qs = _build_event_qs(date_from, date_to)
+
+    from_events = qs.filter(event_type_code=from_type).values('batch_id', 'order_id', 'event_time')
+    to_events = qs.filter(event_type_code=to_type).values('batch_id', 'order_id', 'event_time')
 
     durations = []
     from_map = {}
@@ -450,48 +504,39 @@ def _calc_avg_transition(from_type, to_type):
     return _format_duration(avg)
 
 
-def _calc_batch_durations():
-    """
-    Длительности переходов партий.
-    Использует event_type_code для надёжного сопоставления.
-    """
+def _calc_batch_durations(date_from=None, date_to=None):
     transitions = [
         ('batch.received', 'batch.placed', 'Приёмка', 'Размещение', 'received', 'stored'),
         ('batch.received', 'batch.reserved', 'Приёмка', 'Резервирование', 'received', 'reserved'),
         ('batch.placed', 'batch.reserved', 'Размещение', 'Резервирование', 'stored', 'reserved'),
         ('batch.placed', 'batch.moved', 'Размещение', 'Перемещение', 'stored', 'stored'),
     ]
-    return _calc_durations_by_event_type(transitions, key_field='batch_id')
+    return _calc_durations_by_event_type(transitions, key_field='batch_id',
+                                         date_from=date_from, date_to=date_to)
 
 
-def _calc_order_durations():
-    """
-    Длительности переходов заказов.
-    """
+def _calc_order_durations(date_from=None, date_to=None):
     transitions = [
         ('order.created', 'order.picking_started', 'Создан', 'Комплектация', 'created', 'picking'),
         ('order.picking_started', 'order.assembled', 'Комплектация', 'Собран', 'picking', 'assembled'),
         ('order.assembled', 'shipment.dispatched', 'Собран', 'Отгрузка', 'assembled', 'shipped'),
         ('order.created', 'shipment.dispatched', 'Создан', 'Отгрузка (полный цикл)', 'created', 'shipped'),
     ]
-    return _calc_durations_by_event_type(transitions, key_field='order_id')
+    return _calc_durations_by_event_type(transitions, key_field='order_id',
+                                         date_from=date_from, date_to=date_to)
 
 
-def _calc_durations_by_event_type(transitions, key_field):
-    """
-    Универсальный расчёт длительностей между парами event_type_code.
-    """
+def _calc_durations_by_event_type(transitions, key_field, date_from=None, date_to=None):
+    qs = _build_event_qs(date_from, date_to)
     results = []
     for from_type, to_type, from_label, to_label, from_stage, to_stage in transitions:
         from_events = dict(
-            ProcessEvent.objects
-            .filter(event_type_code=from_type, processing_status='applied')
+            qs.filter(event_type_code=from_type)
             .exclude(**{key_field: None})
             .values_list(key_field, 'event_time')
         )
         to_events = dict(
-            ProcessEvent.objects
-            .filter(event_type_code=to_type, processing_status='applied')
+            qs.filter(event_type_code=to_type)
             .exclude(**{key_field: None})
             .values_list(key_field, 'event_time')
         )

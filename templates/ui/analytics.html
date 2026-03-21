@@ -2,6 +2,38 @@
 {% block title %}KPI{% endblock %}
 {% block page_title %}<i class="bi bi-graph-up me-2"></i>KPI{% endblock %}
 {% block content %}
+<!-- Date range filter -->
+<div class="filter-bar mb-4">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-auto">
+            <label class="form-label mb-0" style="font-size:.78rem;font-weight:500">Период с</label>
+            <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-auto">
+            <label class="form-label mb-0" style="font-size:.78rem;font-weight:500">по</label>
+            <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-auto d-flex gap-2" style="padding-top:1.2rem">
+            <button class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Применить</button>
+            {% if has_filter %}
+            <a href="{% url 'ui:analytics' %}" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+            {% endif %}
+        </div>
+        <div class="col-auto d-flex gap-1" style="padding-top:1.2rem">
+            <a href="{% url 'ui:analytics' %}?date_from={{ quick_7d }}&date_to={{ quick_today }}" class="btn btn-sm btn-outline-primary">7 дней</a>
+            <a href="{% url 'ui:analytics' %}?date_from={{ quick_30d }}&date_to={{ quick_today }}" class="btn btn-sm btn-outline-primary">30 дней</a>
+            <a href="{% url 'ui:analytics' %}?date_from={{ quick_90d }}&date_to={{ quick_today }}" class="btn btn-sm btn-outline-primary">90 дней</a>
+        </div>
+    </form>
+</div>
+
+{% if has_filter %}
+<div class="alert alert-info py-2 d-flex align-items-center justify-content-between mb-3" style="font-size:.85rem">
+    <span><i class="bi bi-funnel me-1"></i>Показаны данные за период: <strong>{{ date_from|default:"начало" }} — {{ date_to|default:"сейчас" }}</strong>. Событий за период: <strong>{{ total_events_in_period }}</strong></span>
+    <a href="{% url 'ui:analytics' %}" class="btn btn-sm btn-outline-info py-0">За всё время</a>
+</div>
+{% endif %}
+
 <!-- KPI cards -->
 <div class="row g-3 mb-4">
     <div class="col-lg-3 col-md-6">
@@ -22,7 +54,7 @@
         <div class="kpi-card">
             <div class="kpi-icon mb-2" style="background:#e6f4ea;color:#1e8e3e"><i class="bi bi-check-circle"></i></div>
             <div class="kpi-value">{{ total_shipped_orders }}</div>
-            <div class="kpi-label">Отгружено заказов</div>
+            <div class="kpi-label">Отгружено заказов{% if has_filter %} за период{% endif %}</div>
         </div>
     </div>
     <div class="col-lg-3 col-md-6">
@@ -37,7 +69,6 @@
 </div>
 
 <div class="row g-3">
-    <!-- Events by type -->
     <div class="col-lg-6">
         <div class="section-card">
             <h5><i class="bi bi-bar-chart me-2"></i>События по типам</h5>
@@ -52,12 +83,10 @@
                 </div>
             </div>
             {% empty %}
-            <p class="text-muted">Нет данных</p>
+            <p class="text-muted">Нет данных за выбранный период</p>
             {% endfor %}
         </div>
     </div>
-
-    <!-- Events by source -->
     <div class="col-lg-6">
         <div class="section-card">
             <h5><i class="bi bi-diagram-2 me-2"></i>События по источникам</h5>
@@ -72,13 +101,12 @@
                 </div>
             </div>
             {% empty %}
-            <p class="text-muted">Нет данных</p>
+            <p class="text-muted">Нет данных за выбранный период</p>
             {% endfor %}
         </div>
     </div>
 </div>
 
-<!-- Stage durations -->
 <div class="row g-3 mt-1">
     {% if batch_durations %}
     <div class="col-lg-6">
@@ -101,7 +129,6 @@
         </div>
     </div>
     {% endif %}
-
     {% if order_durations %}
     <div class="col-lg-6">
         <div class="section-card">
