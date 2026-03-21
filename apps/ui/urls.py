@@ -29,6 +29,8 @@ urlpatterns = [
 
     # Analytics
     path('analytics/', views.analytics, name='analytics'),
+    path('analytics/export/docx/', views.export_docx, name='export-docx'),
+    path('analytics/export/xlsx/', views.export_xlsx, name='export-xlsx'),
 
     # Simulator
     path('simulator/', views.simulator, name='simulator'),

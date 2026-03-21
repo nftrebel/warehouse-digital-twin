@@ -12,6 +12,7 @@ from functools import wraps
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum, F
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import HttpResponse
 from django.contrib import messages
 from django.utils import timezone
 
@@ -575,6 +576,62 @@ def _format_duration(seconds):
         days = int(seconds // 86400)
         hours = int((seconds % 86400) // 3600)
         return f'{days} дн {hours} ч'
+
+
+def _parse_export_dates(request):
+    """Parse date_from/date_to from GET params for export views."""
+    date_from = None
+    date_to = None
+    date_from_str = request.GET.get('date_from', '').strip()
+    date_to_str = request.GET.get('date_to', '').strip()
+
+    if date_from_str:
+        try:
+            date_from = timezone.make_aware(datetime.strptime(date_from_str, '%Y-%m-%d'))
+        except ValueError:
+            pass
+    if date_to_str:
+        try:
+            date_to = timezone.make_aware(
+                datetime.strptime(date_to_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            )
+        except ValueError:
+            pass
+    return date_from, date_to
+
+
+@analyst_required
+def export_docx(request):
+    """Экспорт аналитического отчёта в DOCX."""
+    from apps.analytics.exports import generate_docx
+
+    date_from, date_to = _parse_export_dates(request)
+    buffer = generate_docx(date_from, date_to)
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    )
+    filename = f'report_{timezone.now().strftime("%Y%m%d_%H%M")}.docx'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@analyst_required
+def export_xlsx(request):
+    """Экспорт аналитического отчёта в Excel."""
+    from apps.analytics.exports import generate_xlsx
+
+    date_from, date_to = _parse_export_dates(request)
+    buffer = generate_xlsx(date_from, date_to)
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    filename = f'report_{timezone.now().strftime("%Y%m%d_%H%M")}.xlsx'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 # ---------------------------------------------------------------------------

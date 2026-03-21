@@ -24,6 +24,12 @@
             <a href="{% url 'ui:analytics' %}?date_from={{ quick_30d }}&date_to={{ quick_today }}" class="btn btn-sm btn-outline-primary">30 дней</a>
             <a href="{% url 'ui:analytics' %}?date_from={{ quick_90d }}&date_to={{ quick_today }}" class="btn btn-sm btn-outline-primary">90 дней</a>
         </div>
+        <div class="col d-flex gap-1 justify-content-end" style="padding-top:1.2rem">
+            <a href="{% url 'ui:export-docx' %}{% if date_from or date_to %}?date_from={{ date_from }}&date_to={{ date_to }}{% endif %}"
+               class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-word me-1"></i>Word</a>
+            <a href="{% url 'ui:export-xlsx' %}{% if date_from or date_to %}?date_from={{ date_from }}&date_to={{ date_to }}{% endif %}"
+               class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+        </div>
     </form>
 </div>
 
