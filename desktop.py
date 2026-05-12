@@ -6,6 +6,7 @@
 входа для PyInstaller-сборки (.exe для Windows, .app для macOS).
 """
 
+import io
 import os
 import socket
 import sys
@@ -13,6 +14,15 @@ import threading
 import time
 from pathlib import Path
 from wsgiref.simple_server import WSGIServer, WSGIRequestHandler, make_server
+
+
+# В PyInstaller-сборке с console=False sys.stdout/stderr равны None.
+# Любой print() или Django self.stdout.write() в этом случае падает с AttributeError,
+# из-за чего management-команды отрабатывают только частично. Подменяем на буфер.
+if sys.stdout is None:
+    sys.stdout = io.StringIO()
+if sys.stderr is None:
+    sys.stderr = io.StringIO()
 
 
 # ---------------------------------------------------------------------------
@@ -60,20 +70,41 @@ def init_django():
     from django.core.management import call_command
     from django.db import connection
 
-    # Миграции
-    call_command("migrate", verbosity=0, interactive=False)
+    # Буфер, который безопасно проглатывает unicode-вывод команд
+    # (нужен для frozen build, где реального stdout нет).
+    discard = io.StringIO()
 
-    # Первый запуск: создаём демо-данные, если БД пустая
+    def safe_call(cmd, **kwargs):
+        try:
+            call_command(cmd, stdout=discard, stderr=discard,
+                         verbosity=0, **kwargs)
+            return True
+        except Exception as e:
+            # Логируем в файл рядом с .exe — будет видно при отладке
+            try:
+                log_path = DATA_DIR / "desktop_init.log"
+                with log_path.open("a", encoding="utf-8") as f:
+                    f.write(f"[error] {cmd}: {type(e).__name__}: {e}\n")
+            except Exception:
+                pass
+            return False
+
+    # Миграции
+    safe_call("migrate", interactive=False)
+
+    # Пользователи: команда идемпотентна, безопасно вызывать каждый раз,
+    # если не хватает admin или analyst.
     from apps.accounts.models import User
-    if not User.objects.exists():
-        try:
-            call_command("create_demo_users", verbosity=0)
-        except Exception as e:
-            print(f"[warn] create_demo_users: {e}")
-        try:
-            call_command("seed_demo_data", verbosity=0)
-        except Exception as e:
-            print(f"[warn] seed_demo_data: {e}")
+    needed = {"admin", "analyst"}
+    existing = set(User.objects.filter(username__in=needed)
+                   .values_list("username", flat=True))
+    if needed - existing:
+        safe_call("create_demo_users")
+
+    # Демо-данные: загружаем только если нет ни одного события (=БД пустая).
+    from apps.events.models import ProcessEvent
+    if not ProcessEvent.objects.exists():
+        safe_call("seed_demo_data")
 
     connection.close()
 
