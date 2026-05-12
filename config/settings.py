@@ -10,6 +10,11 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Каталог для пользовательских данных (БД). В обычном режиме = BASE_DIR.
+# При запуске собранного .exe / .app desktop.py выставляет WAREHOUSE_DATA_DIR
+# в каталог рядом с исполняемым файлом (там, где он writable).
+DATA_DIR = Path(os.environ.get("WAREHOUSE_DATA_DIR", BASE_DIR))
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-warehouse-digital-twin-dev-key-change-in-production'
 
@@ -81,7 +86,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': DATA_DIR / 'db.sqlite3',
     }
 }
 

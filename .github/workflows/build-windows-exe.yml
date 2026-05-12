@@ -1,0 +1,40 @@
+name: Build Windows .exe
+
+on:
+  workflow_dispatch:   # запуск вручную из вкладки Actions
+  push:
+    tags:
+      - 'v*'           # автосборка при пуше тега вида v1.0
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build with PyInstaller
+        run: pyinstaller desktop.spec --noconfirm
+
+      - name: Zip build artifact
+        run: |
+          Compress-Archive -Path dist/WarehouseDigitalTwin/* -DestinationPath WarehouseDigitalTwin-windows.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WarehouseDigitalTwin-windows
+          path: WarehouseDigitalTwin-windows.zip
+          retention-days: 30

@@ -1,4 +1,5 @@
 {% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -91,9 +92,19 @@
         a.row-link { color: inherit; text-decoration: none; }
         a.row-link:hover { color: #1a73e8; }
     </style>
+        .btn-help {
+            background: linear-gradient(135deg, #6384ff, #4f6af0);
+            border: none; color: #fff; font-weight: 500;
+            padding: .35rem .85rem; border-radius: 8px;
+            font-size: .82rem; display: inline-flex; align-items: center; gap: .35rem;
+        }
+        .btn-help:hover { background: #4f6af0; color: #fff; box-shadow: 0 2px 8px rgba(99,132,255,.35); }
+        .help-menu { font-size: .85rem; min-width: 240px; }
+        .help-menu .dropdown-item { padding: .45rem .9rem; }
+        .help-menu .dropdown-item i { width: 18px; }
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body data-help-topic="{% block help_topic %}{{ active_page|default:'' }}{% endblock %}">
     <nav class="sidebar">
         <div class="brand">
             <h5><i class="bi bi-box-seam me-2"></i>Цифровой двойник</h5>
@@ -153,6 +164,35 @@
                     <i class="bi bi-person-circle me-1"></i>{{ user.username }}
                 </span>
                 {% endif %}
+                <div class="dropdown">
+                    <button class="btn-help" id="helpBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Помощь (F1)">
+                        <i class="bi bi-question-circle-fill"></i> Помощь
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end help-menu shadow-sm" aria-labelledby="helpBtn">
+                        <li><h6 class="dropdown-header" style="font-size:.72rem">Справочная служба</h6></li>
+                        <li>
+                            <a class="dropdown-item" href="#" id="helpOpenHtml">
+                                <i class="bi bi-book"></i> Открыть справку (HTML)
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" id="helpOpenContext">
+                                <i class="bi bi-bookmark-star"></i> Справка по этой странице
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{% static 'help/BaluevDM_UserGuide.chm' %}" download>
+                                <i class="bi bi-file-earmark-arrow-down"></i> Скачать CHM-файл
+                            </a>
+                        </li>
+                        <li>
+                            <div class="px-3 py-1" style="font-size:.7rem;color:#7b8094">
+                                Нажмите <kbd style="font-size:.7rem">F1</kbd> для контекстной справки
+                            </div>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
         <div class="content-area">
@@ -168,6 +208,64 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            // Контекстная справка: маппинг "ключ страницы" → файл раздела HTML-справки.
+            // Ключ берётся из data-help-topic атрибута body (по умолчанию active_page).
+            var HELP_BASE = "{% static 'help/' %}";
+            var HELP_INDEX = HELP_BASE + "index.htm";
+            var HELP_MAP = {
+                "dashboard":     "rabota_s_glavnym_dashbordom.htm",
+                "digital-twin":  "prosmotr_tekushchego_sostoyaniya_protsessa_.htm",
+                "batches":       "otslezhivanie_sostoyaniya_partii_tovara.htm",
+                "orders":        "otslezhivanie_sostoyaniya_zakaza.htm",
+                "locations":     "otslezhivanie_sostoyaniya_partii_tovara.htm",
+                "events":        "prosmotr_zhurnala_sobytij.htm",
+                "analytics":     "analiz_klyuchevykh_pokazatelej_ehffektivnosti.htm",
+                "simulator":     "opisanie_operatsij.htm",
+                "users":         "uroven_podgotovki_polzovatelya.htm",
+                "login":         "vkhod_v_sistemu_i_zavershenie_raboty.htm"
+            };
+
+            function resolveHelpUrl() {
+                var topic = (document.body.getAttribute("data-help-topic") || "").trim();
+                var file = HELP_MAP[topic];
+                return file ? (HELP_BASE + file) : HELP_INDEX;
+            }
+
+            function openHelp(url) {
+                window.open(url, "warehouseHelp",
+                    "width=1100,height=780,resizable=yes,scrollbars=yes,menubar=no,toolbar=no");
+            }
+
+            // Перехват F1 — контекстная справка.
+            document.addEventListener("keydown", function (e) {
+                if (e.key === "F1" || e.keyCode === 112) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openHelp(resolveHelpUrl());
+                }
+            }, true);
+
+            // Пункты меню.
+            document.addEventListener("DOMContentLoaded", function () {
+                var openHtml = document.getElementById("helpOpenHtml");
+                if (openHtml) {
+                    openHtml.addEventListener("click", function (e) {
+                        e.preventDefault();
+                        openHelp(HELP_INDEX);
+                    });
+                }
+                var openCtx = document.getElementById("helpOpenContext");
+                if (openCtx) {
+                    openCtx.addEventListener("click", function (e) {
+                        e.preventDefault();
+                        openHelp(resolveHelpUrl());
+                    });
+                }
+            });
+        })();
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

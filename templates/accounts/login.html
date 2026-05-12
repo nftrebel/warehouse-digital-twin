@@ -51,9 +51,18 @@
             font-size: .95rem; transition: .2s;
         }
         .btn-login:hover { background: #4f6af0; color: #fff; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(99,132,255,.4); }
+        .help-link {
+            display: block; text-align: center; margin-top: 1.2rem;
+            font-size: .8rem; color: #6384ff; text-decoration: none;
+        }
+        .help-link:hover { color: #4f6af0; text-decoration: underline; }
+        .help-hint {
+            text-align: center; margin-top: .4rem;
+            font-size: .72rem; color: #9ba2b4;
+        }
     </style>
 </head>
-<body>
+<body data-help-topic="login">
     <div class="login-card">
         <div class="brand">
             <div class="icon"><i class="bi bi-box-seam"></i></div>
@@ -87,6 +96,43 @@
                 <i class="bi bi-box-arrow-in-right me-2"></i>Войти в систему
             </button>
         </form>
+
+        <a href="#" class="help-link" id="helpOpenContext">
+            <i class="bi bi-question-circle me-1"></i>Помощь
+        </a>
+        <div class="help-hint">или нажмите <kbd style="font-size:.7rem">F1</kbd></div>
     </div>
+
+    <script>
+        (function () {
+            var HELP_BASE = "{% static 'help/' %}";
+            var HELP_INDEX = HELP_BASE + "index.htm";
+            var HELP_MAP = { "login": "vkhod_v_sistemu_i_zavershenie_raboty.htm" };
+
+            function resolveHelpUrl() {
+                var topic = (document.body.getAttribute("data-help-topic") || "").trim();
+                var file = HELP_MAP[topic];
+                return file ? (HELP_BASE + file) : HELP_INDEX;
+            }
+            function openHelp(url) {
+                window.open(url, "warehouseHelp",
+                    "width=1100,height=780,resizable=yes,scrollbars=yes,menubar=no,toolbar=no");
+            }
+            document.addEventListener("keydown", function (e) {
+                if (e.key === "F1" || e.keyCode === 112) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openHelp(resolveHelpUrl());
+                }
+            }, true);
+            document.addEventListener("DOMContentLoaded", function () {
+                var btn = document.getElementById("helpOpenContext");
+                if (btn) btn.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    openHelp(resolveHelpUrl());
+                });
+            });
+        })();
+    </script>
 </body>
 </html>
